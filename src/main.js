@@ -740,36 +740,6 @@ const markVideoReady = () => {
   requestFrame();
 };
 
-const bufferVideoInMemory = async () => {
-  if (!video.currentSrc || video.dataset.buffered) return;
-
-  video.dataset.buffered = "pending";
-
-  try {
-    const response = await fetch(video.currentSrc);
-    if (!response.ok) throw new Error(response.statusText);
-
-    const blob = await response.blob();
-    const resumeTime = smoothedVideoTime;
-
-    metadataReady = false;
-    video.dataset.buffered = "done";
-    video.src = URL.createObjectURL(blob);
-
-    video.addEventListener(
-      "loadedmetadata",
-      () => {
-        video.currentTime = resumeTime;
-        markVideoReady();
-      },
-      { once: true },
-    );
-    video.load();
-  } catch {
-    delete video.dataset.buffered;
-  }
-};
-
 if (video) {
   if (video.readyState >= 1) {
     markVideoReady();
@@ -779,12 +749,6 @@ if (video) {
 
   if (shouldScrubVideo()) {
     window.requestAnimationFrame(runScrubLoop);
-
-    if (document.readyState === "complete") {
-      bufferVideoInMemory();
-    } else {
-      window.addEventListener("load", bufferVideoInMemory, { once: true });
-    }
   }
 }
 
