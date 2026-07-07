@@ -9,6 +9,9 @@ const progressLinks = Array.from(document.querySelectorAll("[data-progress-index
 const bookingForm = document.querySelector(".booking-form");
 const reduceMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 const languageButtons = Array.from(document.querySelectorAll("[data-lang]"));
+const officeMapElement = document.querySelector("[data-office-map]");
+const officeMapCanvas = document.querySelector("[data-map-canvas]");
+const officeMapLoading = document.querySelector("[data-map-loading]");
 
 root.classList.remove("no-js");
 root.classList.add("js");
@@ -118,6 +121,10 @@ const translations = {
       "Our fictional Cyprus desk is placed close to the coast for owner meetings, guest arrivals and last-minute residence preparation.",
     "office.address": "14 Poseidon Avenue, Agios Tychonas, Limassol 4532, Cyprus",
     "map.label": "Private office",
+    "map.loading": "Loading real map",
+    "map.open": "Open in OpenStreetMap",
+    "map.popup": "Cyprus Villas private office",
+    "map.error": "Map connection is unavailable. Open the location in OpenStreetMap.",
     "footer.note": "Cinematic private rental experience for guests who choose silence, water and exact service.",
     "footer.locationTitle": "Location",
     "footer.location": "Agios Tychonas, Limassol / Mediterranean Sea",
@@ -219,6 +226,10 @@ const translations = {
     "office.copy": "Наш фейковый кипрский офис расположен рядом с побережьем для встреч с владельцами, приема гостей и подготовки резиденций.",
     "office.address": "14 Poseidon Avenue, Agios Tychonas, Limassol 4532, Cyprus",
     "map.label": "Приватный офис",
+    "map.loading": "Загружается реальная карта",
+    "map.open": "Открыть в OpenStreetMap",
+    "map.popup": "Приватный офис Cyprus Villas",
+    "map.error": "Карта сейчас недоступна. Откройте локацию в OpenStreetMap.",
     "footer.note": "Кинематографичный опыт приватной аренды для гостей, которые выбирают тишину, воду и точный сервис.",
     "footer.locationTitle": "Локация",
     "footer.location": "Agios Tychonas, Limassol / Mediterranean Sea",
@@ -316,6 +327,10 @@ const translations = {
     "office.copy": "Το φανταστικό μας κυπριακό γραφείο βρίσκεται κοντά στην ακτή για συναντήσεις ιδιοκτητών, αφίξεις επισκεπτών και προετοιμασία κατοικιών.",
     "office.address": "14 Poseidon Avenue, Άγιος Τύχωνας, Λεμεσός 4532, Κύπρος",
     "map.label": "Ιδιωτικό γραφείο",
+    "map.loading": "Φόρτωση πραγματικού χάρτη",
+    "map.open": "Άνοιγμα στο OpenStreetMap",
+    "map.popup": "Ιδιωτικό γραφείο Cyprus Villas",
+    "map.error": "Ο χάρτης δεν είναι διαθέσιμος. Ανοίξτε την τοποθεσία στο OpenStreetMap.",
     "footer.note": "Κινηματογραφική εμπειρία ιδιωτικής ενοικίασης για επισκέπτες που επιλέγουν σιωπή, νερό και ακριβή υπηρεσία.",
     "footer.locationTitle": "Τοποθεσία",
     "footer.location": "Άγιος Τύχωνας, Λεμεσός / Μεσόγειος Θάλασσα",
@@ -349,6 +364,13 @@ let lastSeek = -1;
 let metadataReady = false;
 let liteMode = isLowPowerDevice();
 let activeLanguage = localStorage.getItem("cyprus-villas-language") || "en";
+let leafletPromise = null;
+let officeMap = null;
+let officeMarker = null;
+
+const OFFICE_LOCATION = [34.7138, 33.1687];
+const LEAFLET_CSS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+const LEAFLET_JS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
 
 body.classList.toggle("is-lite", liteMode);
 
@@ -381,7 +403,130 @@ const applyLanguage = (language) => {
     button.classList.toggle("is-active", button.dataset.lang === activeLanguage);
   });
 
+  updateOfficeMapPopup();
   localStorage.setItem("cyprus-villas-language", activeLanguage);
+};
+
+function updateOfficeMapPopup() {
+  if (!officeMarker) return;
+  const dictionary = translations[activeLanguage] || translations.en;
+  officeMarker.bindPopup(dictionary["map.popup"] || translations.en["map.popup"]);
+}
+
+const loadStylesheet = (href) => {
+  if (document.querySelector(`link[href="${href}"]`)) return;
+
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = href;
+  document.head.append(link);
+};
+
+const loadScript = (src) =>
+  new Promise((resolve, reject) => {
+    const existingScript = document.querySelector(`script[src="${src}"]`);
+
+    if (window.L) {
+      resolve(window.L);
+      return;
+    }
+
+    if (existingScript) {
+      existingScript.addEventListener("load", () => resolve(window.L), { once: true });
+      existingScript.addEventListener("error", reject, { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = src;
+    script.async = true;
+    script.onload = () => resolve(window.L);
+    script.onerror = reject;
+    document.head.append(script);
+  });
+
+const loadLeaflet = () => {
+  if (leafletPromise) return leafletPromise;
+
+  loadStylesheet(LEAFLET_CSS);
+  leafletPromise = loadScript(LEAFLET_JS);
+  return leafletPromise;
+};
+
+const setOfficeMapError = () => {
+  const dictionary = translations[activeLanguage] || translations.en;
+  officeMapElement?.classList.remove("is-loading");
+  officeMapElement?.classList.add("has-error");
+
+  if (officeMapLoading) {
+    officeMapLoading.querySelector("p").textContent = dictionary["map.error"] || translations.en["map.error"];
+  }
+};
+
+const initOfficeMap = async () => {
+  if (!officeMapElement || !officeMapCanvas || officeMap) return;
+
+  officeMapElement.classList.add("is-loading");
+
+  try {
+    const L = await loadLeaflet();
+    const animateMap = !liteMode && !reduceMotionQuery.matches;
+
+    officeMap = L.map(officeMapCanvas, {
+      attributionControl: true,
+      scrollWheelZoom: false,
+      zoomControl: true,
+      zoomAnimation: animateMap,
+      fadeAnimation: false,
+      markerZoomAnimation: animateMap,
+      tap: true,
+    }).setView(OFFICE_LOCATION, 15);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; OpenStreetMap contributors",
+      updateWhenIdle: true,
+      keepBuffer: 2,
+    }).addTo(officeMap);
+
+    officeMarker = L.marker(OFFICE_LOCATION, {
+      icon: L.divIcon({
+        className: "office-map__pin",
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+      }),
+      keyboard: false,
+    }).addTo(officeMap);
+
+    updateOfficeMapPopup();
+    officeMarker.openPopup();
+    officeMapElement.classList.remove("is-loading");
+    officeMapElement.classList.add("is-loaded");
+    window.requestAnimationFrame(() => officeMap.invalidateSize());
+  } catch {
+    setOfficeMapError();
+  }
+};
+
+const setupOfficeMap = () => {
+  if (!officeMapElement) return;
+
+  if (!("IntersectionObserver" in window)) {
+    window.addEventListener("load", initOfficeMap, { once: true });
+    return;
+  }
+
+  const mapObserver = new IntersectionObserver(
+    (entries, observer) => {
+      if (!entries.some((entry) => entry.isIntersecting)) return;
+
+      observer.disconnect();
+      initOfficeMap();
+    },
+    { rootMargin: "640px 0px", threshold: 0.01 },
+  );
+
+  mapObserver.observe(officeMapElement);
 };
 
 const formatTime = (seconds) => {
@@ -587,4 +732,5 @@ window.addEventListener("resize", () => {
 });
 
 applyLanguage(activeLanguage);
+setupOfficeMap();
 requestFrame();

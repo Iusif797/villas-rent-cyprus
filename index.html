@@ -479,14 +479,23 @@
                   <span data-i18n="office.address">14 Poseidon Avenue, Agios Tychonas, Limassol 4532, Cyprus</span>
                 </div>
               </div>
-              <div class="office-map" aria-label="Stylized office map">
-                <div class="map-grid"></div>
-                <span class="map-line map-line--coast"></span>
-                <span class="map-line map-line--road"></span>
-                <span class="map-pin"></span>
+              <div class="office-map" data-office-map aria-label="Interactive office map">
+                <div class="office-map__canvas" data-map-canvas></div>
+                <div class="map-loading" data-map-loading>
+                  <span></span>
+                  <p data-i18n="map.loading">Loading real map</p>
+                </div>
                 <div class="map-card">
                   <span data-i18n="map.label">Private office</span>
                   <strong>34.7138 N, 33.1687 E</strong>
+                  <a
+                    href="https://www.openstreetmap.org/?mlat=34.7138&mlon=33.1687#map=16/34.7138/33.1687"
+                    target="_blank"
+                    rel="noreferrer"
+                    data-i18n="map.open"
+                  >
+                    Open in OpenStreetMap
+                  </a>
                 </div>
               </div>
             </div>
