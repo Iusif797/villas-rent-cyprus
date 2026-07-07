@@ -286,7 +286,8 @@ button {
   top: 0;
   z-index: 0;
   width: 100%;
-  height: 100svh;
+  height: 100vh;
+  height: 100lvh;
   overflow: hidden;
   background: #050505 url("../assets/posters/hero.jpg") center / cover no-repeat;
   pointer-events: none;
@@ -385,7 +386,8 @@ button {
 .tour-chapters {
   position: relative;
   z-index: 2;
-  margin-top: -100svh;
+  margin-top: -100vh;
+  margin-top: -100lvh;
 }
 
 .scene {
