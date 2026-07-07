@@ -361,6 +361,7 @@ let activeIndex = 0;
 let frameRequested = false;
 let resizeTimer = 0;
 let lastSeek = -1;
+let pendingSeek = -1;
 let metadataReady = false;
 let liteMode = isLowPowerDevice();
 let activeLanguage = localStorage.getItem("cyprus-villas-language") || "en";
@@ -536,21 +537,33 @@ const formatTime = (seconds) => {
   return `${minutes}:${rest}`;
 };
 
+const applySeek = (safeTime) => {
+  try {
+    if (typeof video.fastSeek === "function") {
+      video.fastSeek(safeTime);
+    } else {
+      video.currentTime = safeTime;
+    }
+    lastSeek = safeTime;
+  } catch {
+    pendingSeek = safeTime;
+  }
+};
+
 const setVideoTime = (targetTime) => {
   if (!video || !metadataReady || !shouldScrubVideo()) return;
 
   const duration = Number.isFinite(video.duration) ? video.duration : 15;
   const safeTime = clamp(targetTime, 0, Math.max(0, duration - 0.04));
 
-  if (Math.abs(safeTime - lastSeek) < 0.035 || video.seeking) return;
+  if (Math.abs(safeTime - lastSeek) < 0.035) return;
 
-  try {
-    video.currentTime = safeTime;
-    video.pause();
-    lastSeek = safeTime;
-  } catch {
-    // Some browsers temporarily reject seeks while metadata is settling.
+  if (video.seeking) {
+    pendingSeek = safeTime;
+    return;
   }
+
+  applySeek(safeTime);
 };
 
 const setActiveScene = (scene, position) => {
@@ -707,16 +720,67 @@ if (bookingForm) {
   });
 }
 
+const markVideoReady = () => {
+  metadataReady = true;
+  video.pause();
+  requestFrame();
+};
+
+const bufferVideoInMemory = async () => {
+  if (!video.currentSrc || video.dataset.buffered) return;
+
+  video.dataset.buffered = "pending";
+
+  try {
+    const response = await fetch(video.currentSrc);
+    if (!response.ok) throw new Error(response.statusText);
+
+    const blob = await response.blob();
+    const resumeTime = video.currentTime;
+
+    metadataReady = false;
+    lastSeek = -1;
+    video.dataset.buffered = "done";
+    video.src = URL.createObjectURL(blob);
+
+    video.addEventListener(
+      "loadedmetadata",
+      () => {
+        markVideoReady();
+        setVideoTime(resumeTime);
+      },
+      { once: true },
+    );
+    video.load();
+  } catch {
+    delete video.dataset.buffered;
+  }
+};
+
 if (video) {
-  video.addEventListener(
-    "loadedmetadata",
-    () => {
-      metadataReady = true;
-      video.pause();
-      requestFrame();
-    },
-    { once: true },
-  );
+  if (video.readyState >= 1) {
+    markVideoReady();
+  } else {
+    video.addEventListener("loadedmetadata", markVideoReady, { once: true });
+  }
+
+  video.addEventListener("seeked", () => {
+    if (pendingSeek < 0) return;
+
+    const nextSeek = pendingSeek;
+    pendingSeek = -1;
+    if (Math.abs(nextSeek - lastSeek) < 0.035) return;
+
+    applySeek(nextSeek);
+  });
+
+  if (shouldScrubVideo()) {
+    if (document.readyState === "complete") {
+      bufferVideoInMemory();
+    } else {
+      window.addEventListener("load", bufferVideoInMemory, { once: true });
+    }
+  }
 }
 
 reduceMotionQuery.addEventListener("change", () => {
