@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="A cinematic scroll-controlled luxury villa rental experience in Cyprus."
+    />
+    <meta name="theme-color" content="#050505" />
+    <title>Cyprus Villas | Scroll Film Rentals</title>
+    <link rel="icon" href="data:," />
+    <link rel="preload" href="assets/posters/hero.jpg" as="image" fetchpriority="high" />
+    <link rel="stylesheet" href="src/styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#booking" data-i18n="skip">Skip to booking</a>
+
+    <header class="site-header" data-header>
+      <a class="brand" href="#hero" aria-label="Cyprus Villas">
+        <span class="brand__name">Cyprus Villas</span>
+        <span class="brand__meta" data-i18n="brand.meta">Private coastal rentals</span>
+      </a>
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="#tour-start" data-i18n="nav.tour">Tour</a>
+        <a href="#benefits" data-i18n="nav.service">Service</a>
+        <a href="#gallery" data-i18n="nav.villas">Villas</a>
+        <a href="#booking" data-i18n="nav.booking">Booking</a>
+      </nav>
+      <div class="header-tools">
+        <div class="language-switch" aria-label="Language selector">
+          <button type="button" class="is-active" data-lang="en">EN</button>
+          <button type="button" data-lang="ru">RU</button>
+          <button type="button" data-lang="el">EL</button>
+        </div>
+        <a class="header-action" href="#booking" data-i18n="header.action">Request dates</a>
+      </div>
+    </header>
+
+    <aside class="chapter-nav" aria-label="Film progress">
+      <a href="#hero" data-progress-index="0" aria-label="Hero"></a>
+      <a href="#tour-start" data-progress-index="1" aria-label="Aerial approach"></a>
+      <a href="#arrival" data-progress-index="2" aria-label="Arrival"></a>
+      <a href="#threshold" data-progress-index="3" aria-label="Threshold"></a>
+      <a href="#interior" data-progress-index="4" aria-label="Interior"></a>
+      <a href="#living" data-progress-index="5" aria-label="Living room"></a>
+      <a href="#kitchen" data-progress-index="6" aria-label="Kitchen"></a>
+      <a href="#bedroom" data-progress-index="7" aria-label="Bedroom"></a>
+      <a href="#bath" data-progress-index="8" aria-label="Spa bathroom"></a>
+      <a href="#terrace" data-progress-index="9" aria-label="Terrace"></a>
+      <a href="#pool" data-progress-index="10" aria-label="Infinity pool"></a>
+      <a href="#sea" data-progress-index="11" aria-label="Sea panorama"></a>
+    </aside>
+
+    <main id="route">
+      <section class="scroll-film" data-film-tour aria-label="Interactive villa tour">
+        <div class="film-stage" aria-hidden="true">
+          <video
+            id="filmVideo"
+            class="film-video"
+            muted
+            playsinline
+            preload="auto"
+            poster="assets/posters/hero.jpg"
+          >
+            <source
+              src="assets/video/villa-tour-scrub-mobile.mp4"
+              type="video/mp4"
+              media="(max-width: 720px)"
+            />
+            <source src="assets/video/villa-tour-scrub.mp4" type="video/mp4" />
+          </video>
+          <div class="film-grade"></div>
+          <div class="film-readout">
+            <span>Scroll film</span>
+            <strong data-timecode>00:00</strong>
+          </div>
+          <div class="door-mask">
+            <span class="door-mask__panel door-mask__panel--left"></span>
+            <span class="door-mask__panel door-mask__panel--right"></span>
+          </div>
+        </div>
+
+        <div class="tour-chapters">
+          <section
+            id="hero"
+            class="scene scene--hero"
+            data-scene="0"
+            data-time="0.2"
+            data-scale="1.02"
+            data-x="0"
+            data-y="0"
+          >
+            <div class="scene__inner scene__inner--wide">
+              <p class="eyebrow" data-i18n="hero.eyebrow">Private coastal villas / Cyprus</p>
+              <h1 data-i18n="hero.title">Million-euro villas on the first sea line</h1>
+              <p class="hero-copy" data-i18n="hero.copy">
+                This is not a standard property page. Scroll and the film moves with you: from the
+                coast and arrival sequence to the interiors, infinity pool and horizon.
+              </p>
+              <div class="hero-actions">
+                <a class="button button--primary" href="#booking" data-i18n="hero.primary">Request private dates</a>
+                <a class="button button--ghost" href="#tour-start" data-i18n="hero.secondary">Start the tour</a>
+              </div>
+            </div>
+            <div class="scroll-cue" aria-hidden="true">
+              <span></span>
+              <p>Scroll</p>
+            </div>
+          </section>
+
+          <section
+            id="tour-start"
+            class="scene"
+            data-scene="1"
+            data-time="1.2"
+            data-scale="1.08"
+            data-x="-1.1"
+            data-y="0.2"
+          >
+            <div class="scene__inner">
+              <p class="eyebrow" data-i18n="scene1.eyebrow">01 / Aerial approach</p>
+              <h2 data-i18n="scene1.title">The camera descends over the water</h2>
+              <p data-i18n="scene1.copy">
+                The first movement is a slow arrival. Scroll becomes camera motion: sea, cliffs,
+                light and a house that only begins to reveal itself.
+              </p>
+            </div>
+          </section>
+
+          <section
+            id="arrival"
+            class="scene scene--right"
+            data-scene="2"
+            data-time="3.1"
+            data-scale="1.13"
+            data-x="1.2"
+            data-y="-0.4"
+          >
+            <div class="scene__inner">
+              <p class="eyebrow" data-i18n="scene2.eyebrow">02 / Arrival</p>
+              <h2 data-i18n="scene2.title">The estate appears from sunset</h2>
+              <p data-i18n="scene2.copy">
+                Arches, stone, palms and the pool assemble into one frame. Architecture does not
+                compete with the sea; it frames it.
+              </p>
+            </div>
+          </section>
+
+          <section
+            id="threshold"
+            class="scene scene--center"
+            data-scene="3"
+            data-time="5.25"
+            data-scale="1.16"
+            data-x="0"
+            data-y="0"
+            data-door="true"
+          >
+            <div class="scene__inner scene__inner--narrow">
+              <p class="eyebrow" data-i18n="scene3.eyebrow">03 / Threshold</p>
+              <h2 data-i18n="scene3.title">The doors open with the scroll</h2>
+              <p data-i18n="scene3.copy">
+                The site does not jump between blocks. It steps inside with you: frame, mask and
+                copy are synchronized to the exact scroll position.
+              </p>
+            </div>
+          </section>
+
+          <section
+            id="interior"
+            class="scene"
+            data-scene="4"
+            data-time="5.8"
+            data-scale="1.08"
+            data-x="-0.5"
+            data-y="0.4"
+          >
+            <div class="scene__inner">
+              <p class="eyebrow" data-i18n="scene4.eyebrow">04 / Interior</p>
+              <h2 data-i18n="scene4.title">The first breath inside the villa</h2>
+              <p data-i18n="scene4.copy">
+                Light travels through panoramic glass. Marble and timber stay tactile, while the sea
+                remains part of the room.
+              </p>
+            </div>
+          </section>
+
+          <section
+            id="living"
+            class="scene scene--right"
+            data-scene="5"
+            data-time="6.65"
+            data-scale="1.11"
+            data-x="1"
+            data-y="-0.3"
+          >
+            <div class="scene__inner">
+              <p class="eyebrow" data-i18n="scene5.eyebrow">05 / Living room</p>
+              <h2 data-i18n="scene5.title">A room made for long evenings</h2>
+              <p data-i18n="scene5.copy">
+                The lounge is planned around quiet light, long sightlines and a seamless escape to
+                the terrace.
+              </p>
+            </div>
+          </section>
+
+          <section
+            id="kitchen"
+            class="scene"
+            data-scene="6"
+            data-time="8.05"
+            data-scale="1.14"
+            data-x="-1"
+            data-y="-0.55"
+          >
+            <div class="scene__inner">
+              <p class="eyebrow" data-i18n="scene6.eyebrow">06 / Kitchen</p>
+              <h2 data-i18n="scene6.title">A private restaurant inside the house</h2>
+              <p data-i18n="scene6.copy">
+                A stone island, concealed light and chef-ready equipment create a kitchen built for
+                entertaining without noise.
+              </p>
+            </div>
+          </section>
+
+          <section
+            id="bedroom"
+            class="scene scene--right"
+            data-scene="7"
+            data-time="10.05"
+            data-scale="1.1"
+            data-x="0.9"
+            data-y="0.2"
+          >
+            <div class="scene__inner">
+              <p class="eyebrow" data-i18n="scene7.eyebrow">07 / Primary suite</p>
+              <h2 data-i18n="scene7.title">The morning begins with the horizon</h2>
+              <p data-i18n="scene7.copy">
+                The primary suite opens toward water and keeps only what matters inside: silence,
+                texture and warm evening light.
+              </p>
+            </div>
+          </section>
+
+          <section
+            id="bath"
+            class="scene"
+            data-scene="8"
+            data-time="10.55"
+            data-scale="1.18"
+            data-x="-0.8"
+            data-y="-0.15"
+          >
+            <div class="scene__inner">
+              <p class="eyebrow" data-i18n="scene8.eyebrow">08 / Spa bathroom</p>
+              <h2 data-i18n="scene8.title">A marble wellness ritual</h2>
+              <p data-i18n="scene8.copy">
+                The bathroom continues the interior language: natural stone, warm lines of light and
+                the calm of a private spa.
+              </p>
+            </div>
+          </section>
+
+          <section
+            id="terrace"
+            class="scene scene--right"
+            data-scene="9"
+            data-time="11.0"
+            data-scale="1.12"
+            data-x="1.2"
+            data-y="0.1"
+          >
+            <div class="scene__inner">
+              <p class="eyebrow" data-i18n="scene9.eyebrow">09 / Terrace</p>
+              <h2 data-i18n="scene9.title">The move outside is almost invisible</h2>
+              <p data-i18n="scene9.copy">
+                The terrace extends the living room: loungers, shade, open-air dinners and slow
+                evenings by the water.
+              </p>
+            </div>
+          </section>
+
+          <section
+            id="pool"
+            class="scene"
+            data-scene="10"
+            data-time="12.1"
+            data-scale="1.14"
+            data-x="-0.8"
+            data-y="0.2"
+          >
+            <div class="scene__inner">
+              <p class="eyebrow" data-i18n="scene10.eyebrow">10 / Infinity pool</p>
+              <h2 data-i18n="scene10.title">Water merges with the sea</h2>
+              <p data-i18n="scene10.copy">
+                The defining frame of the villa appears at sunset: an edge-free pool, a private
+                garden line and an open horizon.
+              </p>
+            </div>
+          </section>
+
+          <section
+            id="sea"
+            class="scene scene--center"
+            data-scene="11"
+            data-time="14.0"
+            data-scale="1.08"
+            data-x="0"
+            data-y="-0.25"
+          >
+            <div class="scene__inner scene__inner--wide">
+              <p class="eyebrow" data-i18n="scene11.eyebrow">11 / Panorama</p>
+              <h2 data-i18n="scene11.title">The final frame belongs to the sea</h2>
+              <p data-i18n="scene11.copy">
+                As the tour slows down, the point becomes clear: these villas are not built around
+                square meters, but around presence on the Mediterranean.
+              </p>
+            </div>
+          </section>
+
+          <section
+            id="benefits"
+            class="scene scene--benefits"
+            data-scene="12"
+            data-time="14.55"
+            data-scale="1.04"
+            data-x="0"
+            data-y="0"
+          >
+            <div class="scene__inner scene__inner--wide">
+              <p class="eyebrow" data-i18n="benefits.eyebrow">Rental privileges</p>
+              <h2 data-i18n="benefits.title">Service that stays behind the camera</h2>
+              <div class="benefit-ledger" aria-label="Rental privileges">
+                <article>
+                  <span>01</span>
+                  <h3 data-i18n="benefit1.title">Private concierge</h3>
+                  <p data-i18n="benefit1.copy">Transfers, chef, yacht, flowers, wine list and day-by-day planning before arrival.</p>
+                </article>
+                <article>
+                  <span>02</span>
+                  <h3 data-i18n="benefit2.title">Total privacy</h3>
+                  <p data-i18n="benefit2.copy">Separate grounds, calm coastline and discreet service without unnecessary contact.</p>
+                </article>
+                <article>
+                  <span>03</span>
+                  <h3 data-i18n="benefit3.title">Arrival-ready estate</h3>
+                  <p data-i18n="benefit3.copy">Temperature, lighting, kitchen and first-evening details prepared around your rhythm.</p>
+                </article>
+              </div>
+            </div>
+          </section>
+
+          <section
+            id="gallery"
+            class="scene gallery-section"
+            data-scene="13"
+            data-time="14.65"
+            data-scale="1.03"
+            data-x="0"
+            data-y="0"
+          >
+            <div class="collection-shell">
+              <div class="section-heading">
+                <p class="eyebrow" data-i18n="collection.eyebrow">Signature villas</p>
+                <h2 data-i18n="collection.title">A curated portfolio of impossible addresses</h2>
+                <p data-i18n="collection.copy">
+                  Beyond the film villa, Cyprus Villas represents a private collection of coastal
+                  estates selected for architecture, privacy, view and service level.
+                </p>
+              </div>
+              <div class="villa-collection" aria-label="Signature villa collection">
+                <article class="villa-card villa-card--wide">
+                  <img src="assets/villas/01-seafront-estate.webp" alt="Seafront glass estate in Cyprus" loading="lazy" />
+                  <div class="villa-card__content">
+                    <span class="villa-card__index">01</span>
+                    <p class="villa-card__meta" data-i18n="villa1.meta">Akamas Peninsula / 7 suites</p>
+                    <h3 data-i18n="villa1.title">Seafront Glass Estate</h3>
+                    <p data-i18n="villa1.copy">A cliff-edge residence with sculptural terraces, a glass-wrapped salon and a 32-meter infinity pool.</p>
+                    <strong data-i18n="villa1.price">From EUR 18,500 / night</strong>
+                  </div>
+                </article>
+                <article class="villa-card">
+                  <img src="assets/villas/02-hillside-courtyard.webp" alt="Hillside courtyard villa above Limassol" loading="lazy" />
+                  <div class="villa-card__content">
+                    <span class="villa-card__index">02</span>
+                    <p class="villa-card__meta" data-i18n="villa2.meta">Limassol Hills / 6 suites</p>
+                    <h3 data-i18n="villa2.title">Hillside Courtyard House</h3>
+                    <p data-i18n="villa2.copy">A limestone retreat above the city with olive gardens, a spa pavilion and blue-hour sea views.</p>
+                    <strong data-i18n="villa2.price">From EUR 14,900 / night</strong>
+                  </div>
+                </article>
+                <article class="villa-card">
+                  <img src="assets/villas/03-paphos-bay.webp" alt="Curved bay villa near Paphos" loading="lazy" />
+                  <div class="villa-card__content">
+                    <span class="villa-card__index">03</span>
+                    <p class="villa-card__meta" data-i18n="villa3.meta">Paphos Bay / 8 suites</p>
+                    <h3 data-i18n="villa3.title">Bronze Bay Residence</h3>
+                    <p data-i18n="villa3.copy">A cinematic sunset estate with bronze glass, fire lounge and a pool that wraps the architecture.</p>
+                    <strong data-i18n="villa3.price">From EUR 22,000 / night</strong>
+                  </div>
+                </article>
+              </div>
+            </div>
+          </section>
+
+          <section
+            id="booking"
+            class="scene booking-section"
+            data-scene="14"
+            data-time="14.8"
+            data-scale="1.04"
+            data-x="0"
+            data-y="-0.1"
+          >
+            <div class="booking-layout">
+              <div class="booking-copy">
+                <p class="eyebrow" data-i18n="booking.eyebrow">Private request</p>
+                <h2 data-i18n="booking.title">Request dates for a private viewing</h2>
+                <p data-i18n="booking.copy">
+                  After your request, a villa director will clarify the guest profile, rhythm of
+                  travel and prepare a personal Cyprus residence plan.
+                </p>
+              </div>
+              <form class="booking-form" aria-label="Booking form">
+                <label>
+                  <span data-i18n="form.name">Name</span>
+                  <input name="name" type="text" autocomplete="name" required />
+                </label>
+                <label>
+                  <span data-i18n="form.contact">Phone or email</span>
+                  <input name="contact" type="text" autocomplete="email" required />
+                </label>
+                <label>
+                  <span data-i18n="form.arrival">Arrival</span>
+                  <input name="arrival" type="date" required />
+                </label>
+                <label>
+                  <span data-i18n="form.departure">Departure</span>
+                  <input name="departure" type="date" required />
+                </label>
+                <label class="booking-form__full">
+                  <span data-i18n="form.message">Guests and preferences</span>
+                  <textarea
+                    name="message"
+                    rows="4"
+                    placeholder="Example: 6 guests, chef, yacht, family dinner"
+                    data-i18n-placeholder="form.placeholder"
+                  ></textarea>
+                </label>
+                <button class="button button--primary booking-form__full" type="submit" data-i18n="form.submit">
+                  Send private request
+                </button>
+                <p class="form-status" role="status" aria-live="polite"></p>
+              </form>
+            </div>
+          </section>
+
+          <section
+            id="office"
+            class="scene office-section"
+            data-scene="15"
+            data-time="14.9"
+            data-scale="1.02"
+            data-x="0"
+            data-y="0"
+          >
+            <div class="office-layout">
+              <div>
+                <p class="eyebrow" data-i18n="office.eyebrow">Cyprus office</p>
+                <h2 data-i18n="office.title">Island desk, private access</h2>
+                <p data-i18n="office.copy">
+                  Our fictional Cyprus desk is placed close to the coast for owner meetings, guest
+                  arrivals and last-minute residence preparation.
+                </p>
+                <div class="office-contact">
+                  <a href="tel:+35725801947">+357 25 801 947</a>
+                  <a href="mailto:reservations@cyprus-villas.example">reservations@cyprus-villas.example</a>
+                  <span data-i18n="office.address">14 Poseidon Avenue, Agios Tychonas, Limassol 4532, Cyprus</span>
+                </div>
+              </div>
+              <div class="office-map" aria-label="Stylized office map">
+                <div class="map-grid"></div>
+                <span class="map-line map-line--coast"></span>
+                <span class="map-line map-line--road"></span>
+                <span class="map-pin"></span>
+                <div class="map-card">
+                  <span data-i18n="map.label">Private office</span>
+                  <strong>34.7138 N, 33.1687 E</strong>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <footer class="page-footer">
+      <div class="footer-grid">
+        <div>
+          <p class="footer-brand">Cyprus Villas</p>
+          <p class="footer-note" data-i18n="footer.note">
+            Cinematic private rental experience for guests who choose silence, water and exact
+            service.
+          </p>
+        </div>
+        <div>
+          <p class="footer-title" data-i18n="footer.locationTitle">Location</p>
+          <p data-i18n="footer.location">Agios Tychonas, Limassol<br />Mediterranean Sea</p>
+        </div>
+        <div>
+          <p class="footer-title" data-i18n="footer.contactTitle">Contact</p>
+          <p>reservations@cyprus-villas.example<br />+357 25 801 947</p>
+        </div>
+        <div>
+          <p class="footer-title" data-i18n="footer.privateTitle">Private</p>
+          <p data-i18n="footer.private">Concierge<br />Chef-ready kitchens<br />Infinity pools</p>
+        </div>
+      </div>
+      <div class="footer-credit">
+        <p data-i18n="footer.credit">Designed and developed by Iusif Mamedov, Full Stack Developer.</p>
+        <div>
+          <a href="https://web-studio-contacts.netlify.app/" target="_blank" rel="noreferrer" data-i18n="footer.portfolio">Portfolio</a>
+          <a href="https://github.com/Iusif797" target="_blank" rel="noreferrer" data-i18n="footer.github">GitHub</a>
+        </div>
+      </div>
+    </footer>
+
+    <script src="src/main.js" defer></script>
+  </body>
+</html>
