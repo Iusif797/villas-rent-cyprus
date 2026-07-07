@@ -366,7 +366,9 @@ let activeIndex = 0;
 let frameRequested = false;
 let resizeTimer = 0;
 let lastSeek = -1;
-let pendingSeek = -1;
+let targetVideoTime = 0;
+let smoothedVideoTime = 0;
+let lastLoopTimestamp = 0;
 let metadataReady = false;
 let liteMode = isLowPowerDevice();
 let activeLanguage = localStorage.getItem("cyprus-villas-language") || "en";
@@ -542,33 +544,38 @@ const formatTime = (seconds) => {
   return `${minutes}:${rest}`;
 };
 
-const applySeek = (safeTime) => {
-  try {
-    if (typeof video.fastSeek === "function") {
-      video.fastSeek(safeTime);
-    } else {
-      video.currentTime = safeTime;
-    }
-    lastSeek = safeTime;
-  } catch {
-    pendingSeek = safeTime;
-  }
-};
-
 const setVideoTime = (targetTime) => {
   if (!video || !metadataReady || !shouldScrubVideo()) return;
 
   const duration = Number.isFinite(video.duration) ? video.duration : 15;
-  const safeTime = clamp(targetTime, 0, Math.max(0, duration - 0.04));
+  targetVideoTime = clamp(targetTime, 0, Math.max(0, duration - 0.04));
+};
 
-  if (Math.abs(safeTime - lastSeek) < 0.035) return;
+const stepVideoScrub = (timestamp) => {
+  if (!metadataReady || video.seeking) return;
 
-  if (video.seeking) {
-    pendingSeek = safeTime;
-    return;
+  const elapsed = Math.min(64, timestamp - lastLoopTimestamp);
+  const smoothing = 1 - Math.exp(-elapsed / 90);
+  smoothedVideoTime = lerp(smoothedVideoTime, targetVideoTime, smoothing);
+
+  if (Math.abs(smoothedVideoTime - targetVideoTime) < 0.008) {
+    smoothedVideoTime = targetVideoTime;
   }
 
-  applySeek(safeTime);
+  if (Math.abs(smoothedVideoTime - lastSeek) < 0.016) return;
+
+  try {
+    video.currentTime = smoothedVideoTime;
+    lastSeek = smoothedVideoTime;
+  } catch {
+    lastSeek = -1;
+  }
+};
+
+const runScrubLoop = (timestamp) => {
+  stepVideoScrub(timestamp);
+  lastLoopTimestamp = timestamp;
+  window.requestAnimationFrame(runScrubLoop);
 };
 
 const setActiveScene = (scene, position) => {
@@ -728,6 +735,8 @@ if (bookingForm) {
 const markVideoReady = () => {
   metadataReady = true;
   video.pause();
+  smoothedVideoTime = video.currentTime;
+  lastSeek = video.currentTime;
   requestFrame();
 };
 
@@ -741,18 +750,17 @@ const bufferVideoInMemory = async () => {
     if (!response.ok) throw new Error(response.statusText);
 
     const blob = await response.blob();
-    const resumeTime = video.currentTime;
+    const resumeTime = smoothedVideoTime;
 
     metadataReady = false;
-    lastSeek = -1;
     video.dataset.buffered = "done";
     video.src = URL.createObjectURL(blob);
 
     video.addEventListener(
       "loadedmetadata",
       () => {
+        video.currentTime = resumeTime;
         markVideoReady();
-        setVideoTime(resumeTime);
       },
       { once: true },
     );
@@ -769,17 +777,9 @@ if (video) {
     video.addEventListener("loadedmetadata", markVideoReady, { once: true });
   }
 
-  video.addEventListener("seeked", () => {
-    if (pendingSeek < 0) return;
-
-    const nextSeek = pendingSeek;
-    pendingSeek = -1;
-    if (Math.abs(nextSeek - lastSeek) < 0.035) return;
-
-    applySeek(nextSeek);
-  });
-
   if (shouldScrubVideo()) {
+    window.requestAnimationFrame(runScrubLoop);
+
     if (document.readyState === "complete") {
       bufferVideoInMemory();
     } else {
