@@ -831,21 +831,41 @@ h3 {
 
 .booking-form input,
 .booking-form textarea {
+  appearance: none;
+  -webkit-appearance: none;
   width: 100%;
   min-width: 0;
   color: var(--ivory);
+  color-scheme: dark;
   border: 1px solid rgba(247, 240, 228, 0.16);
   border-radius: 4px;
   outline: 0;
   background: rgba(255, 255, 255, 0.045);
+  font: inherit;
+  font-size: 0.92rem;
   transition:
     border-color 180ms var(--ease-out),
     background 180ms var(--ease-out);
 }
 
 .booking-form input {
+  display: flex;
+  align-items: center;
   height: 48px;
   padding: 0 13px;
+}
+
+.booking-form input::-webkit-date-and-time-value {
+  margin: 0;
+  text-align: left;
+}
+
+.booking-form input[type="date"] {
+  line-height: 46px;
+}
+
+.booking-form input::-webkit-calendar-picker-indicator {
+  opacity: 0.55;
 }
 
 .booking-form textarea {
@@ -866,10 +886,13 @@ h3 {
 
 .form-status {
   grid-column: 1 / -1;
-  min-height: 24px;
   margin: 0;
   color: var(--sea);
   font-size: 0.88rem;
+}
+
+.form-status:empty {
+  display: none;
 }
 
 .office-section {
