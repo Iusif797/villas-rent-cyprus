@@ -1272,8 +1272,7 @@ h3 {
   }
 
   .scene::before {
-    inset: 16vh auto auto 22px;
-    height: 86px;
+    display: none;
   }
 
   .scene__inner {
