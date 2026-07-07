@@ -213,21 +213,22 @@ button {
 .language-switch {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  padding: 3px;
+  gap: 1px;
+  padding: 2px;
   border: 1px solid rgba(247, 240, 228, 0.12);
   border-radius: 4px;
   background: rgba(5, 5, 5, 0.36);
 }
 
 .language-switch button {
-  min-width: 32px;
-  height: 28px;
+  min-width: 26px;
+  height: 22px;
   color: rgba(247, 240, 228, 0.58);
   border: 0;
   border-radius: 3px;
   background: transparent;
-  font-size: 0.72rem;
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
   transition:
     color 180ms var(--ease-out),
     background 180ms var(--ease-out);
@@ -1234,8 +1235,8 @@ h3 {
   }
 
   .language-switch button {
-    min-width: 27px;
-    height: 26px;
+    min-width: 24px;
+    height: 21px;
   }
 
   .scene {
@@ -1398,9 +1399,9 @@ h3 {
   }
 
   .language-switch button {
-    min-width: 24px;
-    height: 24px;
-    font-size: 0.66rem;
+    min-width: 22px;
+    height: 20px;
+    font-size: 0.62rem;
   }
 
   .header-action {

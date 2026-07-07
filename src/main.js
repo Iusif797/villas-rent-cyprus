@@ -16,6 +16,11 @@ const officeMapLoading = document.querySelector("[data-map-loading]");
 root.classList.remove("no-js");
 root.classList.add("js");
 
+if ("scrollRestoration" in history) {
+  history.scrollRestoration = "manual";
+}
+window.scrollTo(0, 0);
+
 const clamp = (value, min = 0, max = 1) => Math.min(Math.max(value, min), max);
 const lerp = (from, to, progress) => from + (to - from) * progress;
 const easeOut = (value) => 1 - Math.pow(1 - clamp(value), 3);
@@ -222,7 +227,7 @@ const translations = {
     "form.submit": "Отправить приватный запрос",
     "form.status": "Запрос подготовлен. Villa director свяжется с вами для подтверждения деталей.",
     "office.eyebrow": "Офис на Кипре",
-    "office.title": "Island desk, private access",
+    "office.title": "Островной офис, приватный доступ",
     "office.copy": "Наш фейковый кипрский офис расположен рядом с побережьем для встреч с владельцами, приема гостей и подготовки резиденций.",
     "office.address": "14 Poseidon Avenue, Agios Tychonas, Limassol 4532, Cyprus",
     "map.label": "Приватный офис",
@@ -323,7 +328,7 @@ const translations = {
     "form.submit": "Στείλτε ιδιωτικό αίτημα",
     "form.status": "Το αίτημα ετοιμάστηκε. Ένας villa director θα επικοινωνήσει για επιβεβαίωση.",
     "office.eyebrow": "Γραφείο Κύπρου",
-    "office.title": "Island desk, private access",
+    "office.title": "Γραφείο στο νησί, ιδιωτική πρόσβαση",
     "office.copy": "Το φανταστικό μας κυπριακό γραφείο βρίσκεται κοντά στην ακτή για συναντήσεις ιδιοκτητών, αφίξεις επισκεπτών και προετοιμασία κατοικιών.",
     "office.address": "14 Poseidon Avenue, Άγιος Τύχωνας, Λεμεσός 4532, Κύπρος",
     "map.label": "Ιδιωτικό γραφείο",
