@@ -10,6 +10,9 @@ const progressLinks = Array.from(document.querySelectorAll("[data-progress-index
 const bookingForm = document.querySelector(".booking-form");
 const reduceMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 const languageButtons = Array.from(document.querySelectorAll("[data-lang]"));
+const menuToggle = document.querySelector("[data-menu-toggle]");
+const mobileMenu = document.querySelector("[data-mobile-menu]");
+const menuCloseButtons = Array.from(document.querySelectorAll("[data-menu-close]"));
 const officeMapElement = document.querySelector("[data-office-map]");
 const officeMapCanvas = document.querySelector("[data-map-canvas]");
 const officeMapLoading = document.querySelector("[data-map-loading]");
@@ -45,6 +48,7 @@ const translations = {
     "nav.villas": "Villas",
     "nav.booking": "Booking",
     "header.action": "Request dates",
+    "menu.label": "Menu",
     "hero.eyebrow": "Private coastal villas / Cyprus",
     "hero.title": "Million-euro villas on the first sea line",
     "hero.copy":
@@ -159,6 +163,7 @@ const translations = {
     "nav.villas": "Виллы",
     "nav.booking": "Бронь",
     "header.action": "Запросить даты",
+    "menu.label": "Меню",
     "hero.eyebrow": "Приватные виллы у моря / Кипр",
     "hero.title": "Виллы на миллионы евро на первой линии моря",
     "hero.copy":
@@ -264,6 +269,7 @@ const translations = {
     "nav.villas": "Επαύλεις",
     "nav.booking": "Κράτηση",
     "header.action": "Ζητήστε ημερομηνίες",
+    "menu.label": "Μενού",
     "hero.eyebrow": "Ιδιωτικές παραθαλάσσιες επαύλεις / Κύπρος",
     "hero.title": "Επαύλεις εκατομμυρίων στην πρώτη γραμμή της θάλασσας",
     "hero.copy": "Δεν είναι μια συνηθισμένη σελίδα ακινήτου. Κάντε scroll και η ταινία κινείται μαζί σας: ακτή, άφιξη, εσωτερικό, infinity pool και ορίζοντας.",
@@ -1019,6 +1025,16 @@ const requestFrame = () => {
   window.requestAnimationFrame(updateFrame);
 };
 
+const setMenuOpen = (open) => {
+  if (!mobileMenu || !menuToggle) return;
+
+  body.classList.toggle("is-menu-open", open);
+  menuToggle.setAttribute("aria-expanded", open ? "true" : "false");
+  mobileMenu.setAttribute("aria-hidden", open ? "false" : "true");
+};
+
+const closeMenu = () => setMenuOpen(false);
+
 const revealObserver = new IntersectionObserver(
   (entries) => {
     for (const entry of entries) {
@@ -1033,6 +1049,24 @@ const revealObserver = new IntersectionObserver(
 for (const scene of scenes) {
   revealObserver.observe(scene);
 }
+
+menuToggle?.addEventListener("click", () => {
+  setMenuOpen(!body.classList.contains("is-menu-open"));
+});
+
+menuCloseButtons.forEach((button) => {
+  button.addEventListener("click", closeMenu);
+});
+
+mobileMenu?.querySelectorAll('a[href^="#"]').forEach((link) => {
+  link.addEventListener("click", closeMenu);
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    closeMenu();
+  }
+});
 
 languageButtons.forEach((button) => {
   button.addEventListener("click", () => {

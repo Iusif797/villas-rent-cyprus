@@ -34,8 +34,45 @@
           <button type="button" data-lang="el">EL</button>
         </div>
         <a class="header-action" href="#booking" data-i18n="header.action">Request dates</a>
+        <button class="menu-toggle" type="button" data-menu-toggle aria-controls="mobileMenu" aria-expanded="false">
+          <span></span>
+          <span></span>
+          <span data-i18n="menu.label">Menu</span>
+        </button>
       </div>
     </header>
+
+    <div class="mobile-menu" id="mobileMenu" data-mobile-menu aria-hidden="true">
+      <button class="mobile-menu__backdrop" type="button" data-menu-close aria-label="Close menu"></button>
+      <aside class="mobile-menu__panel" aria-label="Mobile navigation">
+        <div class="mobile-menu__top">
+          <div>
+            <span class="mobile-menu__eyebrow">Cyprus Villas</span>
+            <strong data-i18n="brand.meta">Private coastal rentals</strong>
+          </div>
+          <button class="mobile-menu__close" type="button" data-menu-close aria-label="Close menu">×</button>
+        </div>
+        <nav class="mobile-menu__nav" aria-label="Mobile primary navigation">
+          <a href="#tour-start" data-i18n="nav.tour">Tour</a>
+          <a href="#benefits" data-i18n="nav.service">Service</a>
+          <a href="#gallery" data-i18n="nav.villas">Villas</a>
+          <a href="#booking" data-i18n="nav.booking">Booking</a>
+        </nav>
+        <div class="mobile-menu__meta">
+          <div class="language-switch language-switch--menu" aria-label="Language selector">
+            <button type="button" class="is-active" data-lang="en">EN</button>
+            <button type="button" data-lang="ru">RU</button>
+            <button type="button" data-lang="el">EL</button>
+          </div>
+          <a class="mobile-menu__action" href="#booking" data-i18n="header.action">Request dates</a>
+        </div>
+        <div class="mobile-menu__contact">
+          <span data-i18n="footer.contactTitle">Contact</span>
+          <a href="mailto:reservations@cyprus-villas.example">reservations@cyprus-villas.example</a>
+          <a href="tel:+35725801947">+357 25 801 947</a>
+        </div>
+      </aside>
+    </div>
 
     <aside class="chapter-nav" aria-label="Film progress">
       <a href="#hero" data-progress-index="0" aria-label="Hero"></a>
