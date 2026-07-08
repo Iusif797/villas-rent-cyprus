@@ -552,16 +552,17 @@ const setVideoTime = (targetTime) => {
 };
 
 const stepVideoScrub = (timestamp) => {
-  if (!metadataReady || video.seeking) return;
+  if (!metadataReady) return;
 
   const elapsed = Math.min(64, timestamp - lastLoopTimestamp);
-  const smoothing = 1 - Math.exp(-elapsed / 90);
+  const smoothing = 1 - Math.exp(-elapsed / 70);
   smoothedVideoTime = lerp(smoothedVideoTime, targetVideoTime, smoothing);
 
   if (Math.abs(smoothedVideoTime - targetVideoTime) < 0.008) {
     smoothedVideoTime = targetVideoTime;
   }
 
+  if (video.seeking) return;
   if (Math.abs(smoothedVideoTime - lastSeek) < 0.016) return;
 
   try {
