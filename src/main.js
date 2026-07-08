@@ -369,19 +369,44 @@ const VIDEO_SEEK_STEP = 1 / 24;
 const SPRITE_SCRUB = {
   duration: 15.041667,
   count: 180,
-  frameWidth: 960,
-  frameHeight: 540,
   columns: 6,
   rows: 5,
   framesPerSheet: 30,
-  sources: [
-    "assets/video/frames/villa-tour-mobile-strip-01.webp",
-    "assets/video/frames/villa-tour-mobile-strip-02.webp",
-    "assets/video/frames/villa-tour-mobile-strip-03.webp",
-    "assets/video/frames/villa-tour-mobile-strip-04.webp",
-    "assets/video/frames/villa-tour-mobile-strip-05.webp",
-    "assets/video/frames/villa-tour-mobile-strip-06.webp",
-  ],
+};
+
+const createSpriteSheets = (sources) =>
+  sources.map((source) => ({
+    source,
+    image: null,
+    loaded: false,
+    promise: null,
+  }));
+
+const SPRITE_VARIANTS = {
+  landscape: {
+    frameWidth: 960,
+    frameHeight: 540,
+    sheets: createSpriteSheets([
+      "assets/video/frames/villa-tour-mobile-strip-01.webp",
+      "assets/video/frames/villa-tour-mobile-strip-02.webp",
+      "assets/video/frames/villa-tour-mobile-strip-03.webp",
+      "assets/video/frames/villa-tour-mobile-strip-04.webp",
+      "assets/video/frames/villa-tour-mobile-strip-05.webp",
+      "assets/video/frames/villa-tour-mobile-strip-06.webp",
+    ]),
+  },
+  portrait: {
+    frameWidth: 404,
+    frameHeight: 720,
+    sheets: createSpriteSheets([
+      "assets/video/frames/villa-tour-mobile-portrait-01.webp",
+      "assets/video/frames/villa-tour-mobile-portrait-02.webp",
+      "assets/video/frames/villa-tour-mobile-portrait-03.webp",
+      "assets/video/frames/villa-tour-mobile-portrait-04.webp",
+      "assets/video/frames/villa-tour-mobile-portrait-05.webp",
+      "assets/video/frames/villa-tour-mobile-portrait-06.webp",
+    ]),
+  },
 };
 
 const getConnection = () => navigator.connection || navigator.mozConnection || navigator.webkitConnection;
@@ -419,8 +444,12 @@ let smoothedVideoTime = 0;
 let lastLoopTimestamp = 0;
 let metadataReady = false;
 let mobileScrubMode = isMobileScrubDevice();
-let activeSpriteSheet = -1;
+let activeSpriteVariant = null;
 let activeSpriteFrame = -1;
+let targetSpriteFrame = 0;
+let smoothedSpriteFrame = 0;
+let spriteLoopRunning = false;
+let lastSpriteTimestamp = 0;
 let spriteGeometry = null;
 let spriteContext = null;
 let spriteDim = false;
@@ -430,12 +459,6 @@ let activeLanguage = localStorage.getItem("cyprus-villas-language") || "en";
 let leafletPromise = null;
 let officeMap = null;
 let officeMarker = null;
-const spriteSheets = SPRITE_SCRUB.sources.map((source) => ({
-  source,
-  image: null,
-  loaded: false,
-  promise: null,
-}));
 
 const OFFICE_LOCATION = [34.7138, 33.1687];
 const LEAFLET_CSS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
@@ -645,8 +668,11 @@ const getScrubDuration = () => {
   return Number.isFinite(duration) && duration > 0 ? duration : SPRITE_SCRUB.duration;
 };
 
-const loadSpriteSheet = (sheetIndex, priority = "auto") => {
-  const sheet = spriteSheets[sheetIndex];
+const getSpriteVariant = () =>
+  window.innerHeight >= window.innerWidth ? SPRITE_VARIANTS.portrait : SPRITE_VARIANTS.landscape;
+
+const loadSpriteSheet = (variant, sheetIndex, priority = "auto") => {
+  const sheet = variant.sheets[sheetIndex];
   if (!sheet) return Promise.resolve(null);
   if (sheet.promise) return sheet.promise;
 
@@ -661,8 +687,8 @@ const loadSpriteSheet = (sheetIndex, priority = "auto") => {
   sheet.promise = new Promise((resolve) => {
     image.onload = () => {
       sheet.loaded = true;
-      if (mobileScrubMode && Math.floor(activeSpriteFrame / SPRITE_SCRUB.framesPerSheet) === sheetIndex) {
-        drawSpriteFrame(activeSpriteFrame, true);
+      if (mobileScrubMode && variant === activeSpriteVariant) {
+        drawSpriteFrame(targetSpriteFrame, true);
       }
       resolve(image);
     };
@@ -673,18 +699,18 @@ const loadSpriteSheet = (sheetIndex, priority = "auto") => {
   return sheet.promise;
 };
 
-const preloadNearbySpriteSheets = (sheetIndex) => {
-  loadSpriteSheet(sheetIndex, sheetIndex === 0 ? "high" : "auto");
-  loadSpriteSheet(sheetIndex + 1);
+const preloadNearbySpriteSheets = (variant, sheetIndex) => {
+  loadSpriteSheet(variant, sheetIndex, sheetIndex === 0 ? "high" : "auto");
+  loadSpriteSheet(variant, sheetIndex + 1);
 
   if (sheetIndex > 0) {
-    loadSpriteSheet(sheetIndex - 1);
+    loadSpriteSheet(variant, sheetIndex - 1);
   }
 };
 
-const preloadAllSpriteSheets = () => {
-  spriteSheets.forEach((_, sheetIndex) => {
-    loadSpriteSheet(sheetIndex, sheetIndex < 2 ? "high" : "auto");
+const preloadAllSpriteSheets = (variant) => {
+  variant.sheets.forEach((_, sheetIndex) => {
+    loadSpriteSheet(variant, sheetIndex, sheetIndex < 2 ? "high" : "auto");
   });
 };
 
@@ -701,6 +727,7 @@ const getSpriteContext = () => {
 const syncSpriteCanvas = () => {
   if (!filmSprite || !mobileScrubMode) return null;
 
+  const variant = getSpriteVariant();
   const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
   const cssWidth = Math.max(1, Math.round(filmSprite.clientWidth || window.innerWidth));
   const cssHeight = Math.max(1, Math.round(filmSprite.clientHeight || window.innerHeight));
@@ -709,6 +736,7 @@ const syncSpriteCanvas = () => {
 
   if (
     spriteGeometry &&
+    activeSpriteVariant === variant &&
     spriteGeometry.cssWidth === cssWidth &&
     spriteGeometry.cssHeight === cssHeight &&
     spriteGeometry.dpr === dpr
@@ -716,16 +744,20 @@ const syncSpriteCanvas = () => {
     return spriteGeometry;
   }
 
+  activeSpriteVariant = variant;
   filmSprite.width = bufferWidth;
   filmSprite.height = bufferHeight;
   activeSpriteFrame = -1;
 
-  const coverScale = Math.max(
-    bufferWidth / SPRITE_SCRUB.frameWidth,
-    bufferHeight / SPRITE_SCRUB.frameHeight,
-  );
-  const drawWidth = SPRITE_SCRUB.frameWidth * coverScale;
-  const drawHeight = SPRITE_SCRUB.frameHeight * coverScale;
+  const context = getSpriteContext();
+  if (context) {
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+  }
+
+  const coverScale = Math.max(bufferWidth / variant.frameWidth, bufferHeight / variant.frameHeight);
+  const drawWidth = variant.frameWidth * coverScale;
+  const drawHeight = variant.frameHeight * coverScale;
 
   spriteGeometry = {
     cssWidth,
@@ -748,28 +780,29 @@ function drawSpriteFrame(frameIndex, force = false) {
   const nextFrame = Math.round(clamp(frameIndex, 0, SPRITE_SCRUB.count - 1));
   if (!force && nextFrame === activeSpriteFrame) return;
 
-  const sheetIndex = Math.floor(nextFrame / SPRITE_SCRUB.framesPerSheet);
-  const sheet = spriteSheets[sheetIndex];
-  preloadNearbySpriteSheets(sheetIndex);
-
-  if (!sheet?.loaded || !sheet.image) return;
-
   const geometry = syncSpriteCanvas();
   const context = getSpriteContext();
   if (!geometry || !context) return;
 
+  const variant = activeSpriteVariant;
+  const sheetIndex = Math.floor(nextFrame / SPRITE_SCRUB.framesPerSheet);
+  const sheet = variant.sheets[sheetIndex];
+  preloadNearbySpriteSheets(variant, sheetIndex);
+
+  if (!sheet?.loaded || !sheet.image) return;
+
   const localFrame = nextFrame % SPRITE_SCRUB.framesPerSheet;
   const column = localFrame % SPRITE_SCRUB.columns;
   const row = Math.floor(localFrame / SPRITE_SCRUB.columns);
-  const sourceX = column * SPRITE_SCRUB.frameWidth;
-  const sourceY = row * SPRITE_SCRUB.frameHeight;
+  const sourceX = column * variant.frameWidth;
+  const sourceY = row * variant.frameHeight;
 
   context.drawImage(
     sheet.image,
     sourceX,
     sourceY,
-    SPRITE_SCRUB.frameWidth,
-    SPRITE_SCRUB.frameHeight,
+    variant.frameWidth,
+    variant.frameHeight,
     geometry.drawX,
     geometry.drawY,
     geometry.drawWidth,
@@ -780,7 +813,6 @@ function drawSpriteFrame(frameIndex, force = false) {
   context.fillRect(0, 0, geometry.bufferWidth, geometry.bufferHeight);
 
   activeSpriteFrame = nextFrame;
-  activeSpriteSheet = sheetIndex;
 }
 
 const setSpriteDim = (dim) => {
@@ -789,11 +821,52 @@ const setSpriteDim = (dim) => {
   drawSpriteFrame(activeSpriteFrame, true);
 };
 
-const setSpriteTime = (targetTime) => {
+const runSpriteLoop = (timestamp) => {
+  if (!mobileScrubMode) {
+    spriteLoopRunning = false;
+    return;
+  }
+
+  const elapsed = lastSpriteTimestamp ? Math.min(64, timestamp - lastSpriteTimestamp) : 16;
+  lastSpriteTimestamp = timestamp;
+
+  const smoothing = 1 - Math.exp(-elapsed / 80);
+  smoothedSpriteFrame = lerp(smoothedSpriteFrame, targetSpriteFrame, smoothing);
+
+  if (Math.abs(smoothedSpriteFrame - targetSpriteFrame) < 0.35) {
+    smoothedSpriteFrame = targetSpriteFrame;
+  }
+
+  drawSpriteFrame(smoothedSpriteFrame);
+
+  if (smoothedSpriteFrame === targetSpriteFrame) {
+    spriteLoopRunning = false;
+    return;
+  }
+
+  window.requestAnimationFrame(runSpriteLoop);
+};
+
+const startSpriteLoop = () => {
+  if (spriteLoopRunning) return;
+  spriteLoopRunning = true;
+  lastSpriteTimestamp = 0;
+  window.requestAnimationFrame(runSpriteLoop);
+};
+
+const setSpriteTime = (targetTime, immediate = false) => {
   if (!mobileScrubMode) return;
 
   const progress = clamp(targetTime / SPRITE_SCRUB.duration);
-  drawSpriteFrame(progress * (SPRITE_SCRUB.count - 1));
+  targetSpriteFrame = progress * (SPRITE_SCRUB.count - 1);
+
+  if (immediate) {
+    smoothedSpriteFrame = targetSpriteFrame;
+    drawSpriteFrame(targetSpriteFrame);
+    return;
+  }
+
+  startSpriteLoop();
 };
 
 const syncScrubMode = () => {
@@ -806,8 +879,8 @@ const syncScrubMode = () => {
   if (mobileScrubMode) {
     setVideoSourcesEnabled(false);
     syncSpriteCanvas();
-    preloadAllSpriteSheets();
-    setSpriteTime(targetVideoTime);
+    preloadAllSpriteSheets(getSpriteVariant());
+    setSpriteTime(targetVideoTime, true);
     return;
   }
 
@@ -975,6 +1048,7 @@ const updateFrame = () => {
     }
 
     setSpriteDim(activeIndex >= 12);
+    targetVideoTime = timing.targetTime;
     setSpriteTime(timing.targetTime);
     return;
   }
@@ -1007,12 +1081,7 @@ const updateFrame = () => {
   setRootVar("--door-active", mobileScrubMode ? "0" : doorActive.toString());
   setRootVar("--door-open", !mobileScrubMode && doorActive ? eased.toFixed(4) : "0");
 
-  if (mobileScrubMode) {
-    targetVideoTime = targetTime;
-    setSpriteTime(targetTime);
-  } else {
-    setVideoTime(targetTime);
-  }
+  setVideoTime(targetTime);
 
   if (timecode) {
     timecode.textContent = formatTime(targetTime);
