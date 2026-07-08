@@ -3,11 +3,7 @@ const body = document.body;
 const header = document.querySelector("[data-header]");
 const filmTour = document.querySelector("[data-film-tour]");
 const video = document.querySelector("#filmVideo");
-const canvas = document.querySelector("#filmCanvas");
-const canvasContext = canvas?.getContext("2d", {
-  alpha: false,
-  desynchronized: true,
-});
+const filmSprite = document.querySelector("#filmSprite");
 const timecode = document.querySelector("[data-timecode]");
 const scenes = Array.from(document.querySelectorAll("[data-scene]"));
 const progressLinks = Array.from(document.querySelectorAll("[data-progress-index]"));
@@ -29,6 +25,14 @@ window.scrollTo(0, 0);
 const clamp = (value, min = 0, max = 1) => Math.min(Math.max(value, min), max);
 const lerp = (from, to, progress) => from + (to - from) * progress;
 const easeOut = (value) => 1 - Math.pow(1 - clamp(value), 3);
+const styleCache = new Map();
+
+const setRootVar = (name, value) => {
+  if (styleCache.get(name) === value) return;
+
+  styleCache.set(name, value);
+  root.style.setProperty(name, value);
+};
 
 const translations = {
   en: {
@@ -354,30 +358,34 @@ const translations = {
 };
 
 const pointerCoarseQuery = window.matchMedia("(pointer: coarse)");
-const compactViewportQuery = window.matchMedia("(max-width: 780px)");
+const portableViewportQuery = window.matchMedia("(max-width: 1100px)");
 const VIDEO_SEEK_STEP = 1 / 24;
-const FRAME_SCRUB = {
+const SPRITE_SCRUB = {
   duration: 15.041667,
-  count: 120,
+  count: 180,
   frameWidth: 960,
   frameHeight: 540,
   columns: 6,
+  rows: 5,
   framesPerSheet: 30,
   sources: [
     "assets/video/frames/villa-tour-mobile-strip-01.webp",
     "assets/video/frames/villa-tour-mobile-strip-02.webp",
     "assets/video/frames/villa-tour-mobile-strip-03.webp",
     "assets/video/frames/villa-tour-mobile-strip-04.webp",
+    "assets/video/frames/villa-tour-mobile-strip-05.webp",
+    "assets/video/frames/villa-tour-mobile-strip-06.webp",
   ],
 };
 
 const getConnection = () => navigator.connection || navigator.mozConnection || navigator.webkitConnection;
 
-const isTouchScrubDevice = () => {
+const isIOSDevice = () => {
   const userAgent = navigator.userAgent || "";
-  const isiOS = /iPad|iPhone|iPod/.test(userAgent) || (userAgent.includes("Macintosh") && navigator.maxTouchPoints > 1);
-  return isiOS || pointerCoarseQuery.matches || compactViewportQuery.matches;
+  return /iPad|iPhone|iPod/.test(userAgent) || (userAgent.includes("Macintosh") && navigator.maxTouchPoints > 1);
 };
+
+const isMobileScrubDevice = () => isIOSDevice() || pointerCoarseQuery.matches || portableViewportQuery.matches;
 
 const canScrubMotion = () => !reduceMotionQuery.matches && !getConnection()?.saveData;
 
@@ -386,12 +394,10 @@ const isLowPowerDevice = () => {
   const savesData = Boolean(connection?.saveData);
   const lowMemory = typeof navigator.deviceMemory === "number" && navigator.deviceMemory <= 4;
   const lowConcurrency = typeof navigator.hardwareConcurrency === "number" && navigator.hardwareConcurrency <= 4;
-  return savesData || lowMemory || lowConcurrency || isTouchScrubDevice() || reduceMotionQuery.matches;
+  return savesData || lowMemory || lowConcurrency || isMobileScrubDevice() || reduceMotionQuery.matches;
 };
 
-const shouldUseFrameScrub = () => Boolean(canvasContext) && canScrubMotion() && isTouchScrubDevice();
-
-const shouldScrubVideo = () => canScrubMotion() && !frameScrubEnabled;
+const shouldScrubVideo = () => canScrubMotion() && !mobileScrubMode;
 
 let activeScene = null;
 let activeScenePosition = 0;
@@ -406,15 +412,16 @@ let targetVideoTime = 0;
 let smoothedVideoTime = 0;
 let lastLoopTimestamp = 0;
 let metadataReady = false;
-let frameScrubEnabled = shouldUseFrameScrub();
-let currentFrameIndex = 0;
-let lastDrawnFrame = -1;
+let mobileScrubMode = isMobileScrubDevice();
+let activeSpriteSheet = -1;
+let activeSpriteFrame = -1;
+let spriteGeometry = null;
 let liteMode = isLowPowerDevice();
 let activeLanguage = localStorage.getItem("cyprus-villas-language") || "en";
 let leafletPromise = null;
 let officeMap = null;
 let officeMarker = null;
-const frameSheets = FRAME_SCRUB.sources.map((source) => ({
+const spriteSheets = SPRITE_SCRUB.sources.map((source) => ({
   source,
   image: null,
   loaded: false,
@@ -426,7 +433,7 @@ const LEAFLET_CSS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
 const LEAFLET_JS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
 
 body.classList.toggle("is-lite", liteMode);
-body.classList.toggle("is-frame-scrub", frameScrubEnabled);
+body.classList.toggle("is-mobile-scrub", mobileScrubMode);
 
 const applyLanguage = (language) => {
   const dictionary = translations[language] || translations.en;
@@ -517,6 +524,11 @@ const setOfficeMapError = () => {
   }
 };
 
+const setOfficeMapStatic = () => {
+  officeMapElement?.classList.remove("is-loading");
+  officeMapElement?.classList.add("is-static", "is-loaded");
+};
+
 const initOfficeMap = async () => {
   if (!officeMapElement || !officeMapCanvas || officeMap) return;
 
@@ -564,6 +576,11 @@ const initOfficeMap = async () => {
 
 const setupOfficeMap = () => {
   if (!officeMapElement) return;
+
+  if (isMobileScrubDevice()) {
+    setOfficeMapStatic();
+    return;
+  }
 
   if (!("IntersectionObserver" in window)) {
     window.addEventListener("load", initOfficeMap, { once: true });
@@ -616,29 +633,11 @@ const setVideoSourcesEnabled = (enabled) => {
 
 const getScrubDuration = () => {
   const duration = Number(video?.duration);
-  return Number.isFinite(duration) && duration > 0 ? duration : FRAME_SCRUB.duration;
+  return Number.isFinite(duration) && duration > 0 ? duration : SPRITE_SCRUB.duration;
 };
 
-const resizeFilmCanvas = () => {
-  if (!canvas || !canvasContext || !frameScrubEnabled) return;
-
-  const rect = canvas.getBoundingClientRect();
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const width = Math.max(1, Math.round(rect.width * dpr));
-  const height = Math.max(1, Math.round(rect.height * dpr));
-
-  if (canvas.width !== width || canvas.height !== height) {
-    canvas.width = width;
-    canvas.height = height;
-    lastDrawnFrame = -1;
-  }
-
-  canvasContext.imageSmoothingEnabled = true;
-  canvasContext.imageSmoothingQuality = "high";
-};
-
-const loadFrameSheet = (sheetIndex, priority = "auto") => {
-  const sheet = frameSheets[sheetIndex];
+const loadSpriteSheet = (sheetIndex, priority = "auto") => {
+  const sheet = spriteSheets[sheetIndex];
   if (!sheet) return Promise.resolve(null);
   if (sheet.promise) return sheet.promise;
 
@@ -654,8 +653,8 @@ const loadFrameSheet = (sheetIndex, priority = "auto") => {
   sheet.promise = new Promise((resolve) => {
     image.onload = () => {
       sheet.loaded = true;
-      if (frameScrubEnabled && Math.floor(currentFrameIndex / FRAME_SCRUB.framesPerSheet) === sheetIndex) {
-        drawFilmFrame(currentFrameIndex, true);
+      if (mobileScrubMode && Math.floor(activeSpriteFrame / SPRITE_SCRUB.framesPerSheet) === sheetIndex) {
+        drawSpriteFrame(activeSpriteFrame, true);
       }
       resolve(image);
     };
@@ -666,88 +665,98 @@ const loadFrameSheet = (sheetIndex, priority = "auto") => {
   return sheet.promise;
 };
 
-const releaseDistantFrameSheets = (activeSheetIndex) => {
-  frameSheets.forEach((sheet, sheetIndex) => {
-    if (Math.abs(sheetIndex - activeSheetIndex) <= 1 || !sheet.image) return;
-
-    sheet.image.onload = null;
-    sheet.image.onerror = null;
-    sheet.image.removeAttribute("src");
-    sheet.image = null;
-    sheet.loaded = false;
-    sheet.promise = null;
-  });
-};
-
-const preloadNearbyFrameSheets = (sheetIndex) => {
-  releaseDistantFrameSheets(sheetIndex);
-  loadFrameSheet(sheetIndex, sheetIndex === 0 ? "high" : "auto");
-  loadFrameSheet(sheetIndex + 1);
+const preloadNearbySpriteSheets = (sheetIndex) => {
+  loadSpriteSheet(sheetIndex, sheetIndex === 0 ? "high" : "auto");
+  loadSpriteSheet(sheetIndex + 1);
 
   if (sheetIndex > 0) {
-    loadFrameSheet(sheetIndex - 1);
+    loadSpriteSheet(sheetIndex - 1);
   }
 };
 
-function drawFilmFrame(frameIndex, force = false) {
-  if (!canvas || !canvasContext || !frameScrubEnabled) return;
+const preloadAllSpriteSheets = () => {
+  spriteSheets.forEach((_, sheetIndex) => {
+    loadSpriteSheet(sheetIndex, sheetIndex < 2 ? "high" : "auto");
+  });
+};
 
-  resizeFilmCanvas();
+const getSpriteGeometry = () => {
+  if (!filmSprite) return null;
 
-  currentFrameIndex = Math.round(clamp(frameIndex, 0, FRAME_SCRUB.count - 1));
-  const sheetIndex = Math.floor(currentFrameIndex / FRAME_SCRUB.framesPerSheet);
-  const sheet = frameSheets[sheetIndex];
+  const width = Math.max(1, Math.round(filmSprite.clientWidth || window.innerWidth));
+  const height = Math.max(1, Math.round(filmSprite.clientHeight || window.innerHeight));
 
-  preloadNearbyFrameSheets(sheetIndex);
+  if (spriteGeometry?.width === width && spriteGeometry?.height === height) {
+    return spriteGeometry;
+  }
 
-  if (!sheet?.loaded || !sheet.image) return;
-  if (!force && currentFrameIndex === lastDrawnFrame) return;
+  const scale = Math.max(width / SPRITE_SCRUB.frameWidth, height / SPRITE_SCRUB.frameHeight);
+  const frameWidth = SPRITE_SCRUB.frameWidth * scale;
+  const frameHeight = SPRITE_SCRUB.frameHeight * scale;
 
-  const localFrame = currentFrameIndex % FRAME_SCRUB.framesPerSheet;
-  const sourceX = (localFrame % FRAME_SCRUB.columns) * FRAME_SCRUB.frameWidth;
-  const sourceY = Math.floor(localFrame / FRAME_SCRUB.columns) * FRAME_SCRUB.frameHeight;
-  const scale = Math.max(canvas.width / FRAME_SCRUB.frameWidth, canvas.height / FRAME_SCRUB.frameHeight);
-  const drawWidth = FRAME_SCRUB.frameWidth * scale;
-  const drawHeight = FRAME_SCRUB.frameHeight * scale;
-  const drawX = (canvas.width - drawWidth) * 0.5;
-  const drawY = (canvas.height - drawHeight) * 0.5;
+  spriteGeometry = {
+    width,
+    height,
+    frameWidth,
+    frameHeight,
+    sheetWidth: frameWidth * SPRITE_SCRUB.columns,
+    sheetHeight: frameHeight * SPRITE_SCRUB.rows,
+    insetX: (width - frameWidth) * 0.5,
+    insetY: (height - frameHeight) * 0.5,
+  };
 
-  canvasContext.clearRect(0, 0, canvas.width, canvas.height);
-  canvasContext.drawImage(
-    sheet.image,
-    sourceX,
-    sourceY,
-    FRAME_SCRUB.frameWidth,
-    FRAME_SCRUB.frameHeight,
-    drawX,
-    drawY,
-    drawWidth,
-    drawHeight,
-  );
+  activeSpriteFrame = -1;
+  return spriteGeometry;
+};
 
-  lastDrawnFrame = currentFrameIndex;
+function drawSpriteFrame(frameIndex, force = false) {
+  if (!filmSprite || !mobileScrubMode) return;
+
+  const nextFrame = Math.round(clamp(frameIndex, 0, SPRITE_SCRUB.count - 1));
+  if (!force && nextFrame === activeSpriteFrame) return;
+
+  const sheetIndex = Math.floor(nextFrame / SPRITE_SCRUB.framesPerSheet);
+  const sheet = spriteSheets[sheetIndex];
+  preloadNearbySpriteSheets(sheetIndex);
+
+  const geometry = getSpriteGeometry();
+  if (!geometry) return;
+
+  const localFrame = nextFrame % SPRITE_SCRUB.framesPerSheet;
+  const column = localFrame % SPRITE_SCRUB.columns;
+  const row = Math.floor(localFrame / SPRITE_SCRUB.columns);
+  const x = geometry.insetX - column * geometry.frameWidth;
+  const y = geometry.insetY - row * geometry.frameHeight;
+
+  if (sheet && sheetIndex !== activeSpriteSheet) {
+    filmSprite.style.backgroundImage = `url("${sheet.source}")`;
+    activeSpriteSheet = sheetIndex;
+  }
+
+  filmSprite.style.backgroundSize = `${geometry.sheetWidth}px ${geometry.sheetHeight}px`;
+  filmSprite.style.backgroundPosition = `${x}px ${y}px`;
+  activeSpriteFrame = nextFrame;
 }
 
-const setFrameTime = (targetTime) => {
-  if (!frameScrubEnabled) return;
+const setSpriteTime = (targetTime) => {
+  if (!mobileScrubMode) return;
 
-  const duration = getScrubDuration();
-  const progress = clamp(targetTime / duration);
-  drawFilmFrame(progress * (FRAME_SCRUB.count - 1));
+  const progress = clamp(targetTime / SPRITE_SCRUB.duration);
+  drawSpriteFrame(progress * (SPRITE_SCRUB.count - 1));
 };
 
 const syncScrubMode = () => {
-  frameScrubEnabled = shouldUseFrameScrub();
+  mobileScrubMode = isMobileScrubDevice();
   liteMode = isLowPowerDevice();
 
   body.classList.toggle("is-lite", liteMode);
-  body.classList.toggle("is-frame-scrub", frameScrubEnabled);
+  body.classList.toggle("is-mobile-scrub", mobileScrubMode);
 
-  if (frameScrubEnabled) {
+  if (mobileScrubMode) {
     setVideoSourcesEnabled(false);
-    resizeFilmCanvas();
-    drawFilmFrame(currentFrameIndex, true);
-    loadFrameSheet(0, "high");
+    getSpriteGeometry();
+    preloadAllSpriteSheets();
+    setSpriteTime(targetVideoTime);
     return;
   }
 
@@ -802,7 +811,7 @@ const setActiveScene = (scene, position) => {
   activeScene = scene;
   activeScenePosition = position;
   activeIndex = Number(scene.dataset.scene || 0);
-  root.style.setProperty("--active-scene", activeIndex);
+  setRootVar("--active-scene", activeIndex.toString());
 
   scenes.forEach((item) => item.classList.toggle("is-active", item === scene));
   progressLinks.forEach((link) => {
@@ -859,8 +868,8 @@ const updateFrame = () => {
 
   const scrollTop = window.scrollY || window.pageYOffset;
   const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
-  root.style.setProperty("--page-progress", clamp(scrollTop / maxScroll).toFixed(4));
-  root.style.setProperty("--film-progress", getTourProgress().toFixed(4));
+  setRootVar("--page-progress", clamp(scrollTop / maxScroll).toFixed(4));
+  setRootVar("--film-progress", getTourProgress().toFixed(4));
   header?.classList.toggle("is-scrolled", scrollTop > 18);
 
   resolveActiveScene();
@@ -875,19 +884,20 @@ const updateFrame = () => {
   const offsetX = liteMode ? 0 : targetX * eased;
   const offsetY = liteMode ? 0 : targetY * eased;
 
-  root.style.setProperty("--scene-progress", eased.toFixed(4));
-  root.style.setProperty("--film-scale", scale.toFixed(4));
-  root.style.setProperty("--film-x", `${offsetX.toFixed(3)}%`);
-  root.style.setProperty("--film-y", `${offsetY.toFixed(3)}%`);
-  root.style.setProperty("--film-brightness", activeIndex >= 12 ? "0.56" : "0.78");
-  root.style.setProperty("--film-saturate", activeIndex >= 12 ? "0.9" : "1.04");
+  setRootVar("--scene-progress", eased.toFixed(4));
+  setRootVar("--film-scale", scale.toFixed(4));
+  setRootVar("--film-x", `${offsetX.toFixed(3)}%`);
+  setRootVar("--film-y", `${offsetY.toFixed(3)}%`);
+  setRootVar("--film-brightness", activeIndex >= 12 ? "0.56" : "0.78");
+  setRootVar("--film-saturate", activeIndex >= 12 ? "0.9" : "1.04");
 
   const doorActive = activeScene.dataset.door === "true" ? 1 : 0;
-  root.style.setProperty("--door-active", doorActive.toString());
-  root.style.setProperty("--door-open", doorActive ? eased.toFixed(4) : "0");
+  setRootVar("--door-active", mobileScrubMode ? "0" : doorActive.toString());
+  setRootVar("--door-open", !mobileScrubMode && doorActive ? eased.toFixed(4) : "0");
 
-  if (frameScrubEnabled) {
-    setFrameTime(targetTime);
+  if (mobileScrubMode) {
+    targetVideoTime = targetTime;
+    setSpriteTime(targetTime);
   } else {
     setVideoTime(targetTime);
   }
@@ -1002,9 +1012,10 @@ window.addEventListener("scroll", requestFrame, { passive: true });
 window.addEventListener("resize", () => {
   window.clearTimeout(resizeTimer);
   resizeTimer = window.setTimeout(() => {
+    spriteGeometry = null;
+    activeSpriteFrame = -1;
     syncScrubMode();
     setupVideoScrub();
-    resizeFilmCanvas();
     requestFrame();
   }, 80);
 });

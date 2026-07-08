@@ -307,16 +307,12 @@ button {
   will-change: transform, filter;
 }
 
-.film-canvas {
+.film-sprite {
   position: absolute;
   inset: 0;
   z-index: 0;
   display: none;
-  width: 100%;
-  height: 100%;
   background: #050505 url("../assets/posters/hero.jpg") center / cover no-repeat;
-  transform: translate3d(var(--film-x), var(--film-y), 0) scale(var(--film-scale));
-  transform-origin: center;
 }
 
 .film-grade {
@@ -1194,26 +1190,87 @@ h3 {
   filter: brightness(0.78) saturate(1.02) contrast(1.04);
 }
 
-.is-frame-scrub .film-video {
+body.is-mobile-scrub {
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+.is-mobile-scrub .film-readout,
+.is-mobile-scrub .chapter-nav {
   display: none;
 }
 
-.is-frame-scrub .film-canvas {
+.is-mobile-scrub .film-stage {
+  position: fixed;
+  inset: 0;
+  display: block;
+  height: 100vh;
+  height: 100dvh;
+  transform: none;
+  contain: layout paint style;
+}
+
+.is-mobile-scrub .film-video {
+  display: none;
+}
+
+.is-mobile-scrub .film-sprite {
   display: block;
 }
 
-.is-frame-scrub .film-grade {
-  background:
-    linear-gradient(90deg, rgba(5, 5, 5, 0.68) 0%, rgba(5, 5, 5, 0.18) 42%, rgba(5, 5, 5, 0.54) 100%),
-    linear-gradient(0deg, rgba(5, 5, 5, 0.8) 0%, rgba(5, 5, 5, 0.08) 48%, rgba(5, 5, 5, 0.46) 100%);
+.is-mobile-scrub .tour-chapters {
+  margin-top: 0;
 }
 
-.is-frame-scrub .film-grade::after {
+.is-mobile-scrub .scene {
+  min-height: 100svh;
+  background:
+    linear-gradient(90deg, rgba(5, 5, 5, 0.72), rgba(5, 5, 5, 0.24) 48%, rgba(5, 5, 5, 0.58)),
+    linear-gradient(180deg, rgba(5, 5, 5, 0.5), rgba(5, 5, 5, 0.18) 42%, rgba(5, 5, 5, 0.82));
+}
+
+.is-mobile-scrub .scene::before,
+.is-mobile-scrub .door-mask {
   display: none;
 }
 
-.is-frame-scrub .film-canvas,
-.is-frame-scrub .film-video,
+.is-mobile-scrub .scene__inner,
+.is-mobile-scrub .collection-shell,
+.is-mobile-scrub .booking-layout,
+.is-mobile-scrub .office-layout {
+  opacity: 1;
+  transform: none;
+  will-change: auto;
+}
+
+.is-mobile-scrub .site-header.is-scrolled,
+.is-mobile-scrub .villa-card,
+.is-mobile-scrub .booking-form,
+.is-mobile-scrub .map-card,
+.is-mobile-scrub .office-map .leaflet-control-attribution {
+  backdrop-filter: none;
+}
+
+.is-mobile-scrub .office-map {
+  touch-action: pan-y;
+}
+
+.is-mobile-scrub .page-footer {
+  position: relative;
+  z-index: 2;
+}
+
+.office-map.is-static .map-loading {
+  display: none;
+}
+
+.office-map.is-static .office-map__canvas {
+  background:
+    radial-gradient(circle at 38% 34%, rgba(107, 182, 180, 0.28), transparent 30%),
+    radial-gradient(circle at 72% 64%, rgba(201, 163, 91, 0.22), transparent 34%),
+    linear-gradient(135deg, #07100f, #12110c 48%, #07100f);
+}
+
 .is-lite .film-video {
   transition-duration: 0ms;
   filter: none;
