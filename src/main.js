@@ -2,6 +2,7 @@ const root = document.documentElement;
 const body = document.body;
 const header = document.querySelector("[data-header]");
 const filmTour = document.querySelector("[data-film-tour]");
+const filmStage = document.querySelector(".film-stage");
 const video = document.querySelector("#filmVideo");
 const filmSprite = document.querySelector("#filmSprite");
 const timecode = document.querySelector("[data-timecode]");
@@ -416,6 +417,7 @@ let mobileScrubMode = isMobileScrubDevice();
 let activeSpriteSheet = -1;
 let activeSpriteFrame = -1;
 let spriteGeometry = null;
+let spriteContext = null;
 let liteMode = isLowPowerDevice();
 let activeLanguage = localStorage.getItem("cyprus-villas-language") || "en";
 let leafletPromise = null;
@@ -680,32 +682,55 @@ const preloadAllSpriteSheets = () => {
   });
 };
 
-const getSpriteGeometry = () => {
-  if (!filmSprite) return null;
+const getSpriteContext = () => {
+  if (!filmSprite || filmSprite.tagName !== "CANVAS") return null;
 
-  const width = Math.max(1, Math.round(filmSprite.clientWidth || window.innerWidth));
-  const height = Math.max(1, Math.round(filmSprite.clientHeight || window.innerHeight));
-
-  if (spriteGeometry?.width === width && spriteGeometry?.height === height) {
-    return spriteGeometry;
+  if (!spriteContext) {
+    spriteContext = filmSprite.getContext("2d", { alpha: false, desynchronized: true });
   }
 
-  const scale = Math.max(width / SPRITE_SCRUB.frameWidth, height / SPRITE_SCRUB.frameHeight);
-  const frameWidth = SPRITE_SCRUB.frameWidth * scale;
-  const frameHeight = SPRITE_SCRUB.frameHeight * scale;
+  return spriteContext;
+};
+
+const syncSpriteCanvas = () => {
+  if (!filmSprite || !mobileScrubMode) return null;
+
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const cssWidth = Math.max(1, Math.round(filmSprite.clientWidth || window.innerWidth));
+  const cssHeight = Math.max(1, Math.round(filmSprite.clientHeight || window.innerHeight));
+  const bufferWidth = Math.max(1, Math.round(cssWidth * dpr));
+  const bufferHeight = Math.max(1, Math.round(cssHeight * dpr));
+
+  if (
+    !spriteGeometry ||
+    spriteGeometry.cssWidth !== cssWidth ||
+    spriteGeometry.cssHeight !== cssHeight ||
+    spriteGeometry.dpr !== dpr
+  ) {
+    filmSprite.width = bufferWidth;
+    filmSprite.height = bufferHeight;
+    activeSpriteFrame = -1;
+  }
+
+  const coverScale = Math.max(
+    bufferWidth / SPRITE_SCRUB.frameWidth,
+    bufferHeight / SPRITE_SCRUB.frameHeight,
+  );
+  const drawWidth = SPRITE_SCRUB.frameWidth * coverScale;
+  const drawHeight = SPRITE_SCRUB.frameHeight * coverScale;
 
   spriteGeometry = {
-    width,
-    height,
-    frameWidth,
-    frameHeight,
-    sheetWidth: frameWidth * SPRITE_SCRUB.columns,
-    sheetHeight: frameHeight * SPRITE_SCRUB.rows,
-    insetX: (width - frameWidth) * 0.5,
-    insetY: (height - frameHeight) * 0.5,
+    cssWidth,
+    cssHeight,
+    bufferWidth,
+    bufferHeight,
+    dpr,
+    drawWidth,
+    drawHeight,
+    drawX: (bufferWidth - drawWidth) * 0.5,
+    drawY: (bufferHeight - drawHeight) * 0.5,
   };
 
-  activeSpriteFrame = -1;
   return spriteGeometry;
 };
 
@@ -719,23 +744,32 @@ function drawSpriteFrame(frameIndex, force = false) {
   const sheet = spriteSheets[sheetIndex];
   preloadNearbySpriteSheets(sheetIndex);
 
-  const geometry = getSpriteGeometry();
-  if (!geometry) return;
+  if (!sheet?.loaded || !sheet.image) return;
+
+  const geometry = syncSpriteCanvas();
+  const context = getSpriteContext();
+  if (!geometry || !context) return;
 
   const localFrame = nextFrame % SPRITE_SCRUB.framesPerSheet;
   const column = localFrame % SPRITE_SCRUB.columns;
   const row = Math.floor(localFrame / SPRITE_SCRUB.columns);
-  const x = geometry.insetX - column * geometry.frameWidth;
-  const y = geometry.insetY - row * geometry.frameHeight;
+  const sourceX = column * SPRITE_SCRUB.frameWidth;
+  const sourceY = row * SPRITE_SCRUB.frameHeight;
 
-  if (sheet && sheetIndex !== activeSpriteSheet) {
-    filmSprite.style.backgroundImage = `url("${sheet.source}")`;
-    activeSpriteSheet = sheetIndex;
-  }
+  context.drawImage(
+    sheet.image,
+    sourceX,
+    sourceY,
+    SPRITE_SCRUB.frameWidth,
+    SPRITE_SCRUB.frameHeight,
+    geometry.drawX,
+    geometry.drawY,
+    geometry.drawWidth,
+    geometry.drawHeight,
+  );
 
-  filmSprite.style.backgroundSize = `${geometry.sheetWidth}px ${geometry.sheetHeight}px`;
-  filmSprite.style.backgroundPosition = `${x}px ${y}px`;
   activeSpriteFrame = nextFrame;
+  activeSpriteSheet = sheetIndex;
 }
 
 const setSpriteTime = (targetTime) => {
@@ -754,7 +788,7 @@ const syncScrubMode = () => {
 
   if (mobileScrubMode) {
     setVideoSourcesEnabled(false);
-    getSpriteGeometry();
+    syncSpriteCanvas();
     preloadAllSpriteSheets();
     setSpriteTime(targetVideoTime);
     return;
@@ -867,6 +901,21 @@ const updateFrame = () => {
   frameRequested = false;
 
   const scrollTop = window.scrollY || window.pageYOffset;
+
+  if (mobileScrubMode) {
+    const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+    setRootVar("--page-progress", clamp(scrollTop / maxScroll).toFixed(4));
+    header?.classList.toggle("is-scrolled", scrollTop > 18);
+    resolveActiveScene();
+
+    if (!activeScene) return;
+
+    const { targetTime } = getSceneTiming();
+    setSpriteTime(targetTime);
+    filmStage?.classList.toggle("is-film-dim", activeIndex >= 12);
+    return;
+  }
+
   const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
   setRootVar("--page-progress", clamp(scrollTop / maxScroll).toFixed(4));
   setRootVar("--film-progress", getTourProgress().toFixed(4));
@@ -1013,6 +1062,7 @@ window.addEventListener("resize", () => {
   window.clearTimeout(resizeTimer);
   resizeTimer = window.setTimeout(() => {
     spriteGeometry = null;
+    spriteContext = null;
     activeSpriteFrame = -1;
     syncScrubMode();
     setupVideoScrub();
