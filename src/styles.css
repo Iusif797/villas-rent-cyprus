@@ -312,7 +312,11 @@ button {
   inset: 0;
   z-index: 0;
   display: none;
-  background: #050505 url("../assets/posters/hero.jpg") center / cover no-repeat;
+  background-color: #050505;
+  background-image: url("../assets/posters/hero.jpg");
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
 }
 
 .film-grade {
@@ -1216,6 +1220,17 @@ body.is-mobile-scrub {
 
 .is-mobile-scrub .film-sprite {
   display: block;
+  filter: brightness(var(--film-brightness)) saturate(var(--film-saturate)) contrast(1.07);
+}
+
+.is-mobile-scrub .film-grade {
+  background:
+    linear-gradient(90deg, rgba(5, 5, 5, 0.28) 0%, rgba(5, 5, 5, 0.08) 42%, rgba(5, 5, 5, 0.2) 100%),
+    linear-gradient(0deg, rgba(5, 5, 5, 0.36) 0%, rgba(5, 5, 5, 0.03) 48%, rgba(5, 5, 5, 0.22) 100%);
+}
+
+.is-mobile-scrub .film-grade::after {
+  display: none;
 }
 
 .is-mobile-scrub .tour-chapters {
@@ -1224,9 +1239,14 @@ body.is-mobile-scrub {
 
 .is-mobile-scrub .scene {
   min-height: 100svh;
-  background:
-    linear-gradient(90deg, rgba(5, 5, 5, 0.72), rgba(5, 5, 5, 0.24) 48%, rgba(5, 5, 5, 0.58)),
-    linear-gradient(180deg, rgba(5, 5, 5, 0.5), rgba(5, 5, 5, 0.18) 42%, rgba(5, 5, 5, 0.82));
+  background: transparent;
+}
+
+.is-mobile-scrub .scene--benefits,
+.is-mobile-scrub .gallery-section,
+.is-mobile-scrub .booking-section,
+.is-mobile-scrub .office-section {
+  background: unset;
 }
 
 .is-mobile-scrub .scene::before,
