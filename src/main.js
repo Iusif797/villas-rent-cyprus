@@ -3,6 +3,11 @@ const body = document.body;
 const header = document.querySelector("[data-header]");
 const filmTour = document.querySelector("[data-film-tour]");
 const video = document.querySelector("#filmVideo");
+const canvas = document.querySelector("#filmCanvas");
+const canvasContext = canvas?.getContext("2d", {
+  alpha: false,
+  desynchronized: true,
+});
 const timecode = document.querySelector("[data-timecode]");
 const scenes = Array.from(document.querySelectorAll("[data-scene]"));
 const progressLinks = Array.from(document.querySelectorAll("[data-progress-index]"));
@@ -348,39 +353,80 @@ const translations = {
   },
 };
 
+const pointerCoarseQuery = window.matchMedia("(pointer: coarse)");
+const compactViewportQuery = window.matchMedia("(max-width: 780px)");
+const VIDEO_SEEK_STEP = 1 / 24;
+const FRAME_SCRUB = {
+  duration: 15.041667,
+  count: 120,
+  frameWidth: 960,
+  frameHeight: 540,
+  columns: 6,
+  framesPerSheet: 30,
+  sources: [
+    "assets/video/frames/villa-tour-mobile-strip-01.webp",
+    "assets/video/frames/villa-tour-mobile-strip-02.webp",
+    "assets/video/frames/villa-tour-mobile-strip-03.webp",
+    "assets/video/frames/villa-tour-mobile-strip-04.webp",
+  ],
+};
+
 const getConnection = () => navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+
+const isTouchScrubDevice = () => {
+  const userAgent = navigator.userAgent || "";
+  const isiOS = /iPad|iPhone|iPod/.test(userAgent) || (userAgent.includes("Macintosh") && navigator.maxTouchPoints > 1);
+  return isiOS || pointerCoarseQuery.matches || compactViewportQuery.matches;
+};
+
+const canScrubMotion = () => !reduceMotionQuery.matches && !getConnection()?.saveData;
 
 const isLowPowerDevice = () => {
   const connection = getConnection();
   const savesData = Boolean(connection?.saveData);
   const lowMemory = typeof navigator.deviceMemory === "number" && navigator.deviceMemory <= 4;
   const lowConcurrency = typeof navigator.hardwareConcurrency === "number" && navigator.hardwareConcurrency <= 4;
-  return savesData || lowMemory || lowConcurrency || reduceMotionQuery.matches;
+  return savesData || lowMemory || lowConcurrency || isTouchScrubDevice() || reduceMotionQuery.matches;
 };
 
-const shouldScrubVideo = () => !reduceMotionQuery.matches && !getConnection()?.saveData;
+const shouldUseFrameScrub = () => Boolean(canvasContext) && canScrubMotion() && isTouchScrubDevice();
+
+const shouldScrubVideo = () => canScrubMotion() && !frameScrubEnabled;
 
 let activeScene = null;
 let activeScenePosition = 0;
 let activeIndex = 0;
 let frameRequested = false;
 let resizeTimer = 0;
+let videoSourcesEnabled = true;
+let videoScrubLoopStarted = false;
+let videoMetadataListenerAttached = false;
 let lastSeek = -1;
 let targetVideoTime = 0;
 let smoothedVideoTime = 0;
 let lastLoopTimestamp = 0;
 let metadataReady = false;
+let frameScrubEnabled = shouldUseFrameScrub();
+let currentFrameIndex = 0;
+let lastDrawnFrame = -1;
 let liteMode = isLowPowerDevice();
 let activeLanguage = localStorage.getItem("cyprus-villas-language") || "en";
 let leafletPromise = null;
 let officeMap = null;
 let officeMarker = null;
+const frameSheets = FRAME_SCRUB.sources.map((source) => ({
+  source,
+  image: null,
+  loaded: false,
+  promise: null,
+}));
 
 const OFFICE_LOCATION = [34.7138, 33.1687];
 const LEAFLET_CSS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
 const LEAFLET_JS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
 
 body.classList.toggle("is-lite", liteMode);
+body.classList.toggle("is-frame-scrub", frameScrubEnabled);
 
 const applyLanguage = (language) => {
   const dictionary = translations[language] || translations.en;
@@ -537,6 +583,177 @@ const setupOfficeMap = () => {
   mapObserver.observe(officeMapElement);
 };
 
+const setVideoSourcesEnabled = (enabled) => {
+  if (!video || videoSourcesEnabled === enabled) return;
+
+  const sources = Array.from(video.querySelectorAll("source"));
+
+  sources.forEach((source) => {
+    const src = source.getAttribute("src");
+    if (src && !source.dataset.src) {
+      source.dataset.src = src;
+    }
+
+    if (enabled && !src && source.dataset.src) {
+      source.setAttribute("src", source.dataset.src);
+    }
+
+    if (!enabled && src) {
+      source.removeAttribute("src");
+    }
+  });
+
+  videoSourcesEnabled = enabled;
+  video.preload = enabled ? "auto" : "none";
+
+  if (!enabled) {
+    video.pause();
+    metadataReady = false;
+  }
+
+  video.load();
+};
+
+const getScrubDuration = () => {
+  const duration = Number(video?.duration);
+  return Number.isFinite(duration) && duration > 0 ? duration : FRAME_SCRUB.duration;
+};
+
+const resizeFilmCanvas = () => {
+  if (!canvas || !canvasContext || !frameScrubEnabled) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const width = Math.max(1, Math.round(rect.width * dpr));
+  const height = Math.max(1, Math.round(rect.height * dpr));
+
+  if (canvas.width !== width || canvas.height !== height) {
+    canvas.width = width;
+    canvas.height = height;
+    lastDrawnFrame = -1;
+  }
+
+  canvasContext.imageSmoothingEnabled = true;
+  canvasContext.imageSmoothingQuality = "high";
+};
+
+const loadFrameSheet = (sheetIndex, priority = "auto") => {
+  const sheet = frameSheets[sheetIndex];
+  if (!sheet) return Promise.resolve(null);
+  if (sheet.promise) return sheet.promise;
+
+  const image = new Image();
+  image.decoding = "async";
+  image.loading = sheetIndex === 0 ? "eager" : "lazy";
+
+  if ("fetchPriority" in image) {
+    image.fetchPriority = priority;
+  }
+
+  sheet.image = image;
+  sheet.promise = new Promise((resolve) => {
+    image.onload = () => {
+      sheet.loaded = true;
+      if (frameScrubEnabled && Math.floor(currentFrameIndex / FRAME_SCRUB.framesPerSheet) === sheetIndex) {
+        drawFilmFrame(currentFrameIndex, true);
+      }
+      resolve(image);
+    };
+    image.onerror = () => resolve(null);
+  });
+  image.src = sheet.source;
+
+  return sheet.promise;
+};
+
+const releaseDistantFrameSheets = (activeSheetIndex) => {
+  frameSheets.forEach((sheet, sheetIndex) => {
+    if (Math.abs(sheetIndex - activeSheetIndex) <= 1 || !sheet.image) return;
+
+    sheet.image.onload = null;
+    sheet.image.onerror = null;
+    sheet.image.removeAttribute("src");
+    sheet.image = null;
+    sheet.loaded = false;
+    sheet.promise = null;
+  });
+};
+
+const preloadNearbyFrameSheets = (sheetIndex) => {
+  releaseDistantFrameSheets(sheetIndex);
+  loadFrameSheet(sheetIndex, sheetIndex === 0 ? "high" : "auto");
+  loadFrameSheet(sheetIndex + 1);
+
+  if (sheetIndex > 0) {
+    loadFrameSheet(sheetIndex - 1);
+  }
+};
+
+function drawFilmFrame(frameIndex, force = false) {
+  if (!canvas || !canvasContext || !frameScrubEnabled) return;
+
+  resizeFilmCanvas();
+
+  currentFrameIndex = Math.round(clamp(frameIndex, 0, FRAME_SCRUB.count - 1));
+  const sheetIndex = Math.floor(currentFrameIndex / FRAME_SCRUB.framesPerSheet);
+  const sheet = frameSheets[sheetIndex];
+
+  preloadNearbyFrameSheets(sheetIndex);
+
+  if (!sheet?.loaded || !sheet.image) return;
+  if (!force && currentFrameIndex === lastDrawnFrame) return;
+
+  const localFrame = currentFrameIndex % FRAME_SCRUB.framesPerSheet;
+  const sourceX = (localFrame % FRAME_SCRUB.columns) * FRAME_SCRUB.frameWidth;
+  const sourceY = Math.floor(localFrame / FRAME_SCRUB.columns) * FRAME_SCRUB.frameHeight;
+  const scale = Math.max(canvas.width / FRAME_SCRUB.frameWidth, canvas.height / FRAME_SCRUB.frameHeight);
+  const drawWidth = FRAME_SCRUB.frameWidth * scale;
+  const drawHeight = FRAME_SCRUB.frameHeight * scale;
+  const drawX = (canvas.width - drawWidth) * 0.5;
+  const drawY = (canvas.height - drawHeight) * 0.5;
+
+  canvasContext.clearRect(0, 0, canvas.width, canvas.height);
+  canvasContext.drawImage(
+    sheet.image,
+    sourceX,
+    sourceY,
+    FRAME_SCRUB.frameWidth,
+    FRAME_SCRUB.frameHeight,
+    drawX,
+    drawY,
+    drawWidth,
+    drawHeight,
+  );
+
+  lastDrawnFrame = currentFrameIndex;
+}
+
+const setFrameTime = (targetTime) => {
+  if (!frameScrubEnabled) return;
+
+  const duration = getScrubDuration();
+  const progress = clamp(targetTime / duration);
+  drawFilmFrame(progress * (FRAME_SCRUB.count - 1));
+};
+
+const syncScrubMode = () => {
+  frameScrubEnabled = shouldUseFrameScrub();
+  liteMode = isLowPowerDevice();
+
+  body.classList.toggle("is-lite", liteMode);
+  body.classList.toggle("is-frame-scrub", frameScrubEnabled);
+
+  if (frameScrubEnabled) {
+    setVideoSourcesEnabled(false);
+    resizeFilmCanvas();
+    drawFilmFrame(currentFrameIndex, true);
+    loadFrameSheet(0, "high");
+    return;
+  }
+
+  setVideoSourcesEnabled(canScrubMotion());
+};
+
 const formatTime = (seconds) => {
   const safeSeconds = Math.max(0, Number.isFinite(seconds) ? seconds : 0);
   const minutes = Math.floor(safeSeconds / 60).toString().padStart(2, "0");
@@ -547,12 +764,12 @@ const formatTime = (seconds) => {
 const setVideoTime = (targetTime) => {
   if (!video || !metadataReady || !shouldScrubVideo()) return;
 
-  const duration = Number.isFinite(video.duration) ? video.duration : 15;
+  const duration = getScrubDuration();
   targetVideoTime = clamp(targetTime, 0, Math.max(0, duration - 0.04));
 };
 
 const stepVideoScrub = (timestamp) => {
-  if (!metadataReady) return;
+  if (!metadataReady || !shouldScrubVideo()) return;
 
   const elapsed = Math.min(64, timestamp - lastLoopTimestamp);
   const smoothing = 1 - Math.exp(-elapsed / 70);
@@ -563,7 +780,7 @@ const stepVideoScrub = (timestamp) => {
   }
 
   if (video.seeking) return;
-  if (Math.abs(smoothedVideoTime - lastSeek) < 0.016) return;
+  if (Math.abs(smoothedVideoTime - lastSeek) < VIDEO_SEEK_STEP) return;
 
   try {
     video.currentTime = smoothedVideoTime;
@@ -655,11 +872,13 @@ const updateFrame = () => {
   const targetX = Number(activeScene.dataset.x || 0);
   const targetY = Number(activeScene.dataset.y || 0);
   const scale = liteMode ? 1 : 1 + (targetScale - 1) * eased;
+  const offsetX = liteMode ? 0 : targetX * eased;
+  const offsetY = liteMode ? 0 : targetY * eased;
 
   root.style.setProperty("--scene-progress", eased.toFixed(4));
   root.style.setProperty("--film-scale", scale.toFixed(4));
-  root.style.setProperty("--film-x", `${(targetX * eased).toFixed(3)}%`);
-  root.style.setProperty("--film-y", `${(targetY * eased).toFixed(3)}%`);
+  root.style.setProperty("--film-x", `${offsetX.toFixed(3)}%`);
+  root.style.setProperty("--film-y", `${offsetY.toFixed(3)}%`);
   root.style.setProperty("--film-brightness", activeIndex >= 12 ? "0.56" : "0.78");
   root.style.setProperty("--film-saturate", activeIndex >= 12 ? "0.9" : "1.04");
 
@@ -667,7 +886,12 @@ const updateFrame = () => {
   root.style.setProperty("--door-active", doorActive.toString());
   root.style.setProperty("--door-open", doorActive ? eased.toFixed(4) : "0");
 
-  setVideoTime(targetTime);
+  if (frameScrubEnabled) {
+    setFrameTime(targetTime);
+  } else {
+    setVideoTime(targetTime);
+  }
+
   if (timecode) {
     timecode.textContent = formatTime(targetTime);
   }
@@ -734,6 +958,8 @@ if (bookingForm) {
 }
 
 const markVideoReady = () => {
+  if (!video) return;
+
   metadataReady = true;
   video.pause();
   smoothedVideoTime = video.currentTime;
@@ -741,30 +967,50 @@ const markVideoReady = () => {
   requestFrame();
 };
 
-if (video) {
+const setupVideoScrub = () => {
+  if (!video || !shouldScrubVideo()) return;
+
+  video.preload = "auto";
+
   if (video.readyState >= 1) {
     markVideoReady();
-  } else {
-    video.addEventListener("loadedmetadata", markVideoReady, { once: true });
+  } else if (!videoMetadataListenerAttached) {
+    videoMetadataListenerAttached = true;
+    video.addEventListener(
+      "loadedmetadata",
+      () => {
+        videoMetadataListenerAttached = false;
+        markVideoReady();
+      },
+      { once: true },
+    );
   }
 
-  if (shouldScrubVideo()) {
+  if (!videoScrubLoopStarted) {
+    videoScrubLoopStarted = true;
     window.requestAnimationFrame(runScrubLoop);
   }
-}
+};
 
 reduceMotionQuery.addEventListener("change", () => {
-  liteMode = isLowPowerDevice();
-  body.classList.toggle("is-lite", liteMode);
+  syncScrubMode();
+  setupVideoScrub();
   requestFrame();
 });
 
 window.addEventListener("scroll", requestFrame, { passive: true });
 window.addEventListener("resize", () => {
   window.clearTimeout(resizeTimer);
-  resizeTimer = window.setTimeout(requestFrame, 80);
+  resizeTimer = window.setTimeout(() => {
+    syncScrubMode();
+    setupVideoScrub();
+    resizeFilmCanvas();
+    requestFrame();
+  }, 80);
 });
 
+syncScrubMode();
+setupVideoScrub();
 applyLanguage(activeLanguage);
 setupOfficeMap();
 requestFrame();

@@ -14,6 +14,7 @@ const types = {
   ".mp4": "video/mp4",
   ".png": "image/png",
   ".webm": "video/webm",
+  ".webp": "image/webp",
 };
 
 const toFilePath = (url) => {
