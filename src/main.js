@@ -2,7 +2,6 @@ const root = document.documentElement;
 const body = document.body;
 const header = document.querySelector("[data-header]");
 const filmTour = document.querySelector("[data-film-tour]");
-const filmStage = document.querySelector(".film-stage");
 const video = document.querySelector("#filmVideo");
 const filmSprite = document.querySelector("#filmSprite");
 const timecode = document.querySelector("[data-timecode]");
@@ -418,6 +417,8 @@ let activeSpriteSheet = -1;
 let activeSpriteFrame = -1;
 let spriteGeometry = null;
 let spriteContext = null;
+let spriteDim = false;
+let sceneMetrics = [];
 let liteMode = isLowPowerDevice();
 let activeLanguage = localStorage.getItem("cyprus-villas-language") || "en";
 let leafletPromise = null;
@@ -645,7 +646,6 @@ const loadSpriteSheet = (sheetIndex, priority = "auto") => {
 
   const image = new Image();
   image.decoding = "async";
-  image.loading = sheetIndex === 0 ? "eager" : "lazy";
 
   if ("fetchPriority" in image) {
     image.fetchPriority = priority;
@@ -695,22 +695,24 @@ const getSpriteContext = () => {
 const syncSpriteCanvas = () => {
   if (!filmSprite || !mobileScrubMode) return null;
 
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
   const cssWidth = Math.max(1, Math.round(filmSprite.clientWidth || window.innerWidth));
   const cssHeight = Math.max(1, Math.round(filmSprite.clientHeight || window.innerHeight));
   const bufferWidth = Math.max(1, Math.round(cssWidth * dpr));
   const bufferHeight = Math.max(1, Math.round(cssHeight * dpr));
 
   if (
-    !spriteGeometry ||
-    spriteGeometry.cssWidth !== cssWidth ||
-    spriteGeometry.cssHeight !== cssHeight ||
-    spriteGeometry.dpr !== dpr
+    spriteGeometry &&
+    spriteGeometry.cssWidth === cssWidth &&
+    spriteGeometry.cssHeight === cssHeight &&
+    spriteGeometry.dpr === dpr
   ) {
-    filmSprite.width = bufferWidth;
-    filmSprite.height = bufferHeight;
-    activeSpriteFrame = -1;
+    return spriteGeometry;
   }
+
+  filmSprite.width = bufferWidth;
+  filmSprite.height = bufferHeight;
+  activeSpriteFrame = -1;
 
   const coverScale = Math.max(
     bufferWidth / SPRITE_SCRUB.frameWidth,
@@ -768,9 +770,18 @@ function drawSpriteFrame(frameIndex, force = false) {
     geometry.drawHeight,
   );
 
+  context.fillStyle = spriteDim ? "rgba(5, 5, 5, 0.44)" : "rgba(5, 5, 5, 0.22)";
+  context.fillRect(0, 0, geometry.bufferWidth, geometry.bufferHeight);
+
   activeSpriteFrame = nextFrame;
   activeSpriteSheet = sheetIndex;
 }
+
+const setSpriteDim = (dim) => {
+  if (dim === spriteDim) return;
+  spriteDim = dim;
+  drawSpriteFrame(activeSpriteFrame, true);
+};
 
 const setSpriteTime = (targetTime) => {
   if (!mobileScrubMode) return;
@@ -853,6 +864,19 @@ const setActiveScene = (scene, position) => {
   });
 };
 
+const measureScenes = () => {
+  const scrollTop = window.scrollY || window.pageYOffset;
+
+  sceneMetrics = scenes.map((scene) => {
+    const rect = scene.getBoundingClientRect();
+    return {
+      top: rect.top + scrollTop,
+      height: Math.max(1, rect.height),
+      time: Number(scene.dataset.time || 0),
+    };
+  });
+};
+
 const resolveActiveScene = () => {
   const viewportAnchor = window.innerHeight * 0.55;
   let bestScene = scenes[0];
@@ -873,6 +897,38 @@ const resolveActiveScene = () => {
   });
 
   setActiveScene(bestScene, bestPosition);
+};
+
+const resolveMobileSceneTiming = (scrollTop) => {
+  if (!sceneMetrics.length) {
+    measureScenes();
+  }
+
+  const viewportHeight = window.innerHeight;
+  const viewportAnchor = viewportHeight * 0.55;
+  let bestPosition = 0;
+  let bestDistance = Number.POSITIVE_INFINITY;
+
+  for (let position = 0; position < sceneMetrics.length; position += 1) {
+    const metric = sceneMetrics[position];
+    const top = metric.top - scrollTop;
+    if (top + metric.height < 0 || top > viewportHeight) continue;
+
+    const distance = Math.abs(top + metric.height * 0.5 - viewportAnchor);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      bestPosition = position;
+    }
+  }
+
+  const metric = sceneMetrics[bestPosition];
+  if (!metric) return null;
+
+  const localProgress = clamp((viewportAnchor - (metric.top - scrollTop)) / metric.height);
+  const nextMetric = sceneMetrics[Math.min(bestPosition + 1, sceneMetrics.length - 1)];
+  const targetTime = lerp(metric.time, nextMetric?.time ?? metric.time, localProgress);
+
+  return { position: bestPosition, targetTime };
 };
 
 const getSceneTiming = () => {
@@ -903,16 +959,17 @@ const updateFrame = () => {
   const scrollTop = window.scrollY || window.pageYOffset;
 
   if (mobileScrubMode) {
-    const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
-    setRootVar("--page-progress", clamp(scrollTop / maxScroll).toFixed(4));
     header?.classList.toggle("is-scrolled", scrollTop > 18);
-    resolveActiveScene();
 
-    if (!activeScene) return;
+    const timing = resolveMobileSceneTiming(scrollTop);
+    if (!timing) return;
 
-    const { targetTime } = getSceneTiming();
-    setSpriteTime(targetTime);
-    filmStage?.classList.toggle("is-film-dim", activeIndex >= 12);
+    if (timing.position !== activeScenePosition) {
+      setActiveScene(scenes[timing.position], timing.position);
+    }
+
+    setSpriteDim(activeIndex >= 12);
+    setSpriteTime(timing.targetTime);
     return;
   }
 
@@ -980,6 +1037,8 @@ for (const scene of scenes) {
 languageButtons.forEach((button) => {
   button.addEventListener("click", () => {
     applyLanguage(button.dataset.lang || "en");
+    measureScenes();
+    requestFrame();
   });
 });
 
@@ -1064,14 +1123,25 @@ window.addEventListener("resize", () => {
     spriteGeometry = null;
     spriteContext = null;
     activeSpriteFrame = -1;
+    measureScenes();
     syncScrubMode();
     setupVideoScrub();
     requestFrame();
   }, 80);
 });
 
+window.addEventListener(
+  "load",
+  () => {
+    measureScenes();
+    requestFrame();
+  },
+  { once: true },
+);
+
 syncScrubMode();
 setupVideoScrub();
 applyLanguage(activeLanguage);
+measureScenes();
 setupOfficeMap();
 requestFrame();
