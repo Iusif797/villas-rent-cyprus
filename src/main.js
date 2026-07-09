@@ -129,10 +129,22 @@ const translations = {
     "form.contact": "Phone or email",
     "form.arrival": "Arrival",
     "form.departure": "Departure",
+    "form.datePlaceholder": "Select date",
+    "form.dateRequired": "Please select arrival and departure dates.",
+    "form.guests": "Guests",
     "form.message": "Guests and preferences",
     "form.placeholder": "Example: 6 guests, chef, yacht, family dinner",
     "form.submit": "Send private request",
     "form.status": "Request prepared. A villa director will contact you to confirm the details.",
+    "estimate.nights": "Nights",
+    "estimate.residence": "Residence",
+    "estimate.concierge": "Concierge & service",
+    "estimate.total": "Estimated total",
+    "estimate.hint": "Select your arrival and departure to see an instant estimate.",
+    "estimate.caption": "Indicative estimate. Your villa director confirms the final quote.",
+    "success.title": "Request sent",
+    "success.subtitle": "A villa director will contact you shortly to confirm the details.",
+    "success.total": "Estimated total {value}",
     "office.eyebrow": "Cyprus office",
     "office.title": "Island desk, private access",
     "office.copy":
@@ -236,10 +248,22 @@ const translations = {
     "form.contact": "Телефон или email",
     "form.arrival": "Заезд",
     "form.departure": "Выезд",
+    "form.datePlaceholder": "Выберите дату",
+    "form.dateRequired": "Пожалуйста, выберите даты заезда и выезда.",
+    "form.guests": "Гости",
     "form.message": "Гости и пожелания",
     "form.placeholder": "Например: 6 гостей, повар, яхта, семейный ужин",
     "form.submit": "Отправить приватный запрос",
     "form.status": "Запрос подготовлен. Villa director свяжется с вами для подтверждения деталей.",
+    "estimate.nights": "Ночи",
+    "estimate.residence": "Резиденция",
+    "estimate.concierge": "Консьерж и сервис",
+    "estimate.total": "Итоговая оценка",
+    "estimate.hint": "Выберите даты заезда и выезда — расчёт появится мгновенно.",
+    "estimate.caption": "Предварительная оценка. Финальную стоимость подтвердит villa director.",
+    "success.title": "Запрос отправлен",
+    "success.subtitle": "Villa director свяжется с вами в ближайшее время для подтверждения деталей.",
+    "success.total": "Итоговая оценка {value}",
     "office.eyebrow": "Офис на Кипре",
     "office.title": "Островной офис, приватный доступ",
     "office.copy": "Наш фейковый кипрский офис расположен рядом с побережьем для встреч с владельцами, приема гостей и подготовки резиденций.",
@@ -338,10 +362,22 @@ const translations = {
     "form.contact": "Τηλέφωνο ή email",
     "form.arrival": "Άφιξη",
     "form.departure": "Αναχώρηση",
+    "form.datePlaceholder": "Επιλέξτε ημερομηνία",
+    "form.dateRequired": "Επιλέξτε ημερομηνίες άφιξης και αναχώρησης.",
+    "form.guests": "Επισκέπτες",
     "form.message": "Επισκέπτες και προτιμήσεις",
     "form.placeholder": "Παράδειγμα: 6 επισκέπτες, chef, yacht, οικογενειακό δείπνο",
     "form.submit": "Στείλτε ιδιωτικό αίτημα",
     "form.status": "Το αίτημα ετοιμάστηκε. Ένας villa director θα επικοινωνήσει για επιβεβαίωση.",
+    "estimate.nights": "Διανυκτερεύσεις",
+    "estimate.residence": "Κατοικία",
+    "estimate.concierge": "Concierge & υπηρεσίες",
+    "estimate.total": "Εκτιμώμενο σύνολο",
+    "estimate.hint": "Επιλέξτε άφιξη και αναχώρηση για άμεση εκτίμηση.",
+    "estimate.caption": "Ενδεικτική εκτίμηση. Ο villa director επιβεβαιώνει την τελική τιμή.",
+    "success.title": "Το αίτημα στάλθηκε",
+    "success.subtitle": "Ένας villa director θα επικοινωνήσει σύντομα για επιβεβαίωση.",
+    "success.total": "Εκτιμώμενο σύνολο {value}",
     "office.eyebrow": "Γραφείο Κύπρου",
     "office.title": "Γραφείο στο νησί, ιδιωτική πρόσβαση",
     "office.copy": "Το φανταστικό μας κυπριακό γραφείο βρίσκεται κοντά στην ακτή για συναντήσεις ιδιοκτητών, αφίξεις επισκεπτών και προετοιμασία κατοικιών.",
@@ -497,6 +533,8 @@ const applyLanguage = (language) => {
   });
 
   updateOfficeMapPopup();
+  updateBookingEstimate();
+  refreshBookingLocale();
   localStorage.setItem("cyprus-villas-language", activeLanguage);
 };
 
@@ -1167,15 +1205,320 @@ for (const link of document.querySelectorAll('a[href^="#"]')) {
   });
 }
 
+const BOOKING_PRICING = {
+  nightlyRate: 1250,
+  conciergePerGuestNight: 40,
+  guests: { min: 2, max: 12, start: 6 },
+};
+
+const CURRENCY_LOCALES = { en: "en-IE", ru: "ru-RU", el: "el-GR" };
+const MS_PER_NIGHT = 86400000;
+
+const toDateValue = (date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
+const formatCurrency = (value) =>
+  new Intl.NumberFormat(CURRENCY_LOCALES[activeLanguage] || CURRENCY_LOCALES.en, {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 0,
+  }).format(value);
+
+const dateLocale = () => CURRENCY_LOCALES[activeLanguage] || CURRENCY_LOCALES.en;
+const startOfDay = (date) => {
+  const clone = new Date(date);
+  clone.setHours(0, 0, 0, 0);
+  return clone;
+};
+const parseISODate = (value) => {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day);
+};
+const weekdayLabels = (locale) => {
+  const formatter = new Intl.DateTimeFormat(locale, { weekday: "short" });
+  return Array.from({ length: 7 }, (_, index) => formatter.format(new Date(2023, 0, 2 + index)));
+};
+
+const openPickers = new Set();
+
+const createDatePicker = (field, { getMinDate, onSelect }) => {
+  const trigger = field.querySelector("[data-datepicker-trigger]");
+  const display = field.querySelector("[data-datepicker-display]");
+  const hidden = field.querySelector("input[type='hidden']");
+  const pop = document.createElement("div");
+  pop.className = "date-pop";
+  pop.hidden = true;
+  pop.setAttribute("role", "dialog");
+  field.append(pop);
+
+  let selected = null;
+  let viewDate = null;
+
+  const refreshDisplay = () => {
+    display.textContent = selected
+      ? new Intl.DateTimeFormat(dateLocale(), {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        }).format(selected)
+      : "";
+    const dictionary = translations[activeLanguage] || translations.en;
+    display.setAttribute(
+      "data-placeholder",
+      dictionary["form.datePlaceholder"] || translations.en["form.datePlaceholder"],
+    );
+  };
+
+  const render = () => {
+    const locale = dateLocale();
+    const min = startOfDay(getMinDate());
+    const view = viewDate || startOfDay(selected || min);
+    const year = view.getFullYear();
+    const month = view.getMonth();
+    const title = new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" }).format(view);
+    const offset = (new Date(year, month, 1).getDay() + 6) % 7;
+    const days = new Date(year, month + 1, 0).getDate();
+    const today = startOfDay(new Date());
+
+    const weekdays = weekdayLabels(locale)
+      .map((label) => `<span class="date-pop__weekday">${label}</span>`)
+      .join("");
+
+    let cells = "";
+    for (let blank = 0; blank < offset; blank += 1) {
+      cells += `<span class="date-pop__day is-empty"></span>`;
+    }
+    for (let day = 1; day <= days; day += 1) {
+      const current = new Date(year, month, day);
+      const iso = toDateValue(current);
+      const classes = ["date-pop__day"];
+      if (current.getTime() === today.getTime()) classes.push("is-today");
+      if (selected && iso === toDateValue(selected)) classes.push("is-selected");
+      const disabled = current < min ? " disabled" : "";
+      cells += `<button type="button" class="${classes.join(" ")}" data-day="${iso}"${disabled}>${day}</button>`;
+    }
+
+    pop.innerHTML = `
+      <div class="date-pop__head">
+        <button type="button" class="date-pop__nav" data-nav="-1" aria-label="Previous month">&lsaquo;</button>
+        <span class="date-pop__title">${title}</span>
+        <button type="button" class="date-pop__nav" data-nav="1" aria-label="Next month">&rsaquo;</button>
+      </div>
+      <div class="date-pop__weekdays">${weekdays}</div>
+      <div class="date-pop__grid">${cells}</div>
+    `;
+  };
+
+  const close = () => {
+    if (pop.hidden) return;
+    pop.hidden = true;
+    trigger.setAttribute("aria-expanded", "false");
+    openPickers.delete(close);
+  };
+
+  const open = () => {
+    openPickers.forEach((closeOther) => closeOther());
+    viewDate = startOfDay(selected || getMinDate());
+    render();
+    pop.hidden = false;
+    trigger.setAttribute("aria-expanded", "true");
+    openPickers.add(close);
+  };
+
+  trigger.addEventListener("click", () => (pop.hidden ? open() : close()));
+
+  pop.addEventListener("click", (event) => {
+    const nav = event.target.closest("[data-nav]");
+    if (nav) {
+      const base = viewDate || startOfDay(selected || getMinDate());
+      viewDate = new Date(base.getFullYear(), base.getMonth() + Number(nav.dataset.nav), 1);
+      render();
+      return;
+    }
+    const day = event.target.closest("[data-day]");
+    if (!day || day.disabled) return;
+    selected = parseISODate(day.dataset.day);
+    hidden.value = day.dataset.day;
+    refreshDisplay();
+    close();
+    onSelect();
+  });
+
+  refreshDisplay();
+
+  return {
+    getDate: () => selected,
+    clear: () => {
+      selected = null;
+      hidden.value = "";
+      refreshDisplay();
+    },
+    refresh: () => {
+      refreshDisplay();
+      if (!pop.hidden) render();
+    },
+    close,
+  };
+};
+
+document.addEventListener("pointerdown", (event) => {
+  if (event.target.closest("[data-datepicker]")) return;
+  openPickers.forEach((close) => close());
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") openPickers.forEach((close) => close());
+});
+
+let updateBookingEstimate = () => {};
+let refreshBookingLocale = () => {};
+
 if (bookingForm) {
+  const arrivalField = bookingForm.querySelector("[data-arrival]").closest("[data-datepicker]");
+  const departureField = bookingForm.querySelector("[data-departure]").closest("[data-datepicker]");
+  const guestsOutput = bookingForm.querySelector("[data-guests-output]");
+  const guestsInput = bookingForm.querySelector("[data-guests-input]");
+  const guestsButtons = Array.from(bookingForm.querySelectorAll("[data-guests-step]"));
+  const estimatePanel = bookingForm.querySelector("[data-estimate]");
+  const nightsField = bookingForm.querySelector("[data-estimate-nights]");
+  const residenceField = bookingForm.querySelector("[data-estimate-residence]");
+  const conciergeField = bookingForm.querySelector("[data-estimate-concierge]");
+  const totalField = bookingForm.querySelector("[data-estimate-total]");
+  const submitButton = bookingForm.querySelector("[data-submit]");
+  const statusField = bookingForm.querySelector(".form-status");
+  const successTotal = bookingForm.querySelector("[data-success-total]");
+
+  const { min: minGuests, max: maxGuests, start: startGuests } = BOOKING_PRICING.guests;
+  let guestCount = startGuests;
+  let isSubmitting = false;
+  let resetTimer = 0;
+
+  const arrivalPicker = createDatePicker(arrivalField, {
+    getMinDate: () => new Date(),
+    onSelect: () => {
+      const arrival = arrivalPicker.getDate();
+      const departure = departurePicker.getDate();
+      if (arrival && departure && startOfDay(departure) <= startOfDay(arrival)) {
+        departurePicker.clear();
+      }
+      departurePicker.refresh();
+      updateBookingEstimate();
+    },
+  });
+
+  const departurePicker = createDatePicker(departureField, {
+    getMinDate: () => {
+      const arrival = arrivalPicker.getDate();
+      const base = arrival ? new Date(arrival) : new Date();
+      base.setDate(base.getDate() + 1);
+      return base;
+    },
+    onSelect: () => updateBookingEstimate(),
+  });
+
+  const readNights = () => {
+    const arrival = arrivalPicker.getDate();
+    const departure = departurePicker.getDate();
+    if (!arrival || !departure) return 0;
+    const nights = Math.round((startOfDay(departure) - startOfDay(arrival)) / MS_PER_NIGHT);
+    return nights > 0 ? nights : 0;
+  };
+
+  const computeTotal = (nights) =>
+    nights * BOOKING_PRICING.nightlyRate +
+    nights * guestCount * BOOKING_PRICING.conciergePerGuestNight;
+
+  updateBookingEstimate = () => {
+    const nights = readNights();
+    estimatePanel.classList.toggle("is-active", nights > 0);
+
+    if (nights <= 0) {
+      nightsField.textContent = "\u2014";
+      residenceField.textContent = "\u2014";
+      conciergeField.textContent = "\u2014";
+      totalField.textContent = "\u2014";
+      return;
+    }
+
+    nightsField.textContent = String(nights);
+    residenceField.textContent = formatCurrency(nights * BOOKING_PRICING.nightlyRate);
+    conciergeField.textContent = formatCurrency(
+      nights * guestCount * BOOKING_PRICING.conciergePerGuestNight,
+    );
+    totalField.textContent = formatCurrency(computeTotal(nights));
+  };
+
+  refreshBookingLocale = () => {
+    arrivalPicker.refresh();
+    departurePicker.refresh();
+  };
+
+  const setGuests = (next) => {
+    guestCount = clamp(next, minGuests, maxGuests);
+    guestsOutput.textContent = String(guestCount);
+    guestsInput.value = String(guestCount);
+    guestsButtons.forEach((button) => {
+      const target = guestCount + Number(button.dataset.guestsStep);
+      button.disabled = target < minGuests || target > maxGuests;
+    });
+    updateBookingEstimate();
+  };
+
+  function resetBooking() {
+    bookingForm.classList.remove("is-sent");
+    bookingForm.reset();
+    arrivalPicker.clear();
+    departurePicker.clear();
+    if (statusField) statusField.textContent = "";
+    if (successTotal) successTotal.textContent = "";
+    submitButton.disabled = false;
+    isSubmitting = false;
+    setGuests(startGuests);
+  }
+
+  const finishSubmit = () => {
+    const dictionary = translations[activeLanguage] || translations.en;
+    submitButton.classList.remove("is-loading");
+    if (statusField) {
+      statusField.textContent = dictionary["form.status"] || translations.en["form.status"];
+    }
+    const nights = readNights();
+    if (successTotal && nights > 0) {
+      const template = dictionary["success.total"] || translations.en["success.total"];
+      successTotal.textContent = template.replace("{value}", formatCurrency(computeTotal(nights)));
+    }
+    bookingForm.classList.add("is-sent");
+    resetTimer = window.setTimeout(resetBooking, 4600);
+  };
+
+  guestsButtons.forEach((button) => {
+    button.addEventListener("click", () =>
+      setGuests(guestCount + Number(button.dataset.guestsStep)),
+    );
+  });
+
   bookingForm.addEventListener("submit", (event) => {
     event.preventDefault();
-    const status = bookingForm.querySelector(".form-status");
-    if (status) {
-      status.textContent = translations[activeLanguage]?.["form.status"] || translations.en["form.status"];
+    if (isSubmitting) return;
+    if (!bookingForm.checkValidity()) {
+      bookingForm.reportValidity();
+      return;
     }
-    bookingForm.reset();
+    if (readNights() <= 0) {
+      const dictionary = translations[activeLanguage] || translations.en;
+      if (statusField) {
+        statusField.textContent =
+          dictionary["form.dateRequired"] || translations.en["form.dateRequired"];
+      }
+      return;
+    }
+    window.clearTimeout(resetTimer);
+    isSubmitting = true;
+    submitButton.disabled = true;
+    submitButton.classList.add("is-loading");
+    window.setTimeout(finishSubmit, 1500);
   });
+
+  setGuests(startGuests);
 }
 
 const markVideoReady = () => {
