@@ -25,6 +25,7 @@
         <a href="#tour-start" data-i18n="nav.tour">Tour</a>
         <a href="#benefits" data-i18n="nav.service">Service</a>
         <a href="#gallery" data-i18n="nav.villas">Villas</a>
+        <a href="#availability" data-i18n="nav.availability">Availability</a>
         <a href="#booking" data-i18n="nav.booking">Booking</a>
       </nav>
       <div class="header-tools">
@@ -58,6 +59,7 @@
           <a href="#tour-start" data-i18n="nav.tour">Tour</a>
           <a href="#benefits" data-i18n="nav.service">Service</a>
           <a href="#gallery" data-i18n="nav.villas">Villas</a>
+          <a href="#availability" data-i18n="nav.availability">Availability</a>
           <a href="#booking" data-i18n="nav.booking">Booking</a>
         </nav>
         <div class="mobile-menu__meta">
@@ -446,9 +448,128 @@
           </section>
 
           <section
+            id="availability"
+            class="scene availability-section"
+            data-scene="14"
+            data-time="14.72"
+            data-scale="1.03"
+            data-x="0"
+            data-y="0"
+          >
+            <div class="availability-shell">
+              <div class="section-heading">
+                <p class="eyebrow" data-i18n="availability.eyebrow">Live availability</p>
+                <h2 data-i18n="availability.title">Check open dates before you request</h2>
+                <p data-i18n="availability.copy">
+                  Choose a residence and pick your arrival and departure. Held dates flow straight
+                  into your private request below.
+                </p>
+              </div>
+              <div class="availability-panel" data-availability>
+                <div class="availability-villas" role="tablist" aria-label="Select villa">
+                  <button
+                    type="button"
+                    class="availability-villa is-active"
+                    role="tab"
+                    aria-selected="true"
+                    data-avail-villa="1"
+                  >
+                    <span class="availability-villa__name" data-i18n="villa1.title">Seafront Glass Estate</span>
+                    <span class="availability-villa__meta" data-i18n="villa1.meta">Akamas Peninsula / 7 suites</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="availability-villa"
+                    role="tab"
+                    aria-selected="false"
+                    data-avail-villa="2"
+                  >
+                    <span class="availability-villa__name" data-i18n="villa2.title">Hillside Courtyard House</span>
+                    <span class="availability-villa__meta" data-i18n="villa2.meta">Limassol Hills / 6 suites</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="availability-villa"
+                    role="tab"
+                    aria-selected="false"
+                    data-avail-villa="3"
+                  >
+                    <span class="availability-villa__name" data-i18n="villa3.title">Bronze Bay Residence</span>
+                    <span class="availability-villa__meta" data-i18n="villa3.meta">Paphos Bay / 8 suites</span>
+                  </button>
+                </div>
+                <div class="availability-calendar" aria-live="polite">
+                  <div class="availability-calendar__head">
+                    <button
+                      type="button"
+                      class="availability-calendar__nav"
+                      data-avail-nav="-1"
+                      aria-label="Previous month"
+                    >
+                      &lsaquo;
+                    </button>
+                    <span class="availability-calendar__title" data-avail-title></span>
+                    <button
+                      type="button"
+                      class="availability-calendar__nav"
+                      data-avail-nav="1"
+                      aria-label="Next month"
+                    >
+                      &rsaquo;
+                    </button>
+                  </div>
+                  <div class="availability-calendar__weekdays" data-avail-weekdays></div>
+                  <div class="availability-calendar__grid" data-avail-grid></div>
+                </div>
+                <aside class="availability-side">
+                  <ul class="availability-legend">
+                    <li>
+                      <span class="availability-legend__dot availability-legend__dot--free"></span>
+                      <span data-i18n="availability.free">Available</span>
+                    </li>
+                    <li>
+                      <span class="availability-legend__dot availability-legend__dot--booked"></span>
+                      <span data-i18n="availability.booked">Booked</span>
+                    </li>
+                    <li>
+                      <span class="availability-legend__dot availability-legend__dot--range"></span>
+                      <span data-i18n="availability.stay">Your stay</span>
+                    </li>
+                  </ul>
+                  <div class="availability-summary">
+                    <div class="availability-summary__row">
+                      <span data-i18n="availability.villaLabel">Villa</span>
+                      <span class="availability-summary__value" data-avail-villa-name></span>
+                    </div>
+                    <div class="availability-summary__row">
+                      <span data-i18n="availability.rangeLabel">Dates</span>
+                      <span class="availability-summary__value" data-avail-range>&mdash;</span>
+                    </div>
+                    <div class="availability-summary__row">
+                      <span data-i18n="availability.nightsLabel">Nights</span>
+                      <span class="availability-summary__value" data-avail-nights>&mdash;</span>
+                    </div>
+                  </div>
+                  <p class="availability-hint" data-avail-hint data-i18n="availability.hint">
+                    Pick an available arrival and departure to hold your dates.
+                  </p>
+                  <button
+                    class="button button--primary availability-apply"
+                    type="button"
+                    data-avail-apply
+                    disabled
+                  >
+                    <span data-i18n="availability.apply">Request these dates</span>
+                  </button>
+                </aside>
+              </div>
+            </div>
+          </section>
+
+          <section
             id="booking"
             class="scene booking-section"
-            data-scene="14"
+            data-scene="15"
             data-time="14.8"
             data-scale="1.04"
             data-x="0"
@@ -591,7 +712,7 @@
           <section
             id="office"
             class="scene office-section"
-            data-scene="15"
+            data-scene="16"
             data-time="14.9"
             data-scale="1.02"
             data-x="0"

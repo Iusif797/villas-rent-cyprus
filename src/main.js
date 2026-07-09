@@ -46,6 +46,7 @@ const translations = {
     "nav.tour": "Tour",
     "nav.service": "Service",
     "nav.villas": "Villas",
+    "nav.availability": "Availability",
     "nav.booking": "Booking",
     "header.action": "Request dates",
     "menu.label": "Menu",
@@ -121,6 +122,18 @@ const translations = {
     "villa3.title": "Bronze Bay Residence",
     "villa3.copy": "A cinematic sunset estate with bronze glass, fire lounge and a pool that wraps the architecture.",
     "villa3.price": "From EUR 22,000 / night",
+    "availability.eyebrow": "Live availability",
+    "availability.title": "Check open dates before you request",
+    "availability.copy":
+      "Choose a residence and pick your arrival and departure. Held dates flow straight into your private request below.",
+    "availability.free": "Available",
+    "availability.booked": "Booked",
+    "availability.stay": "Your stay",
+    "availability.villaLabel": "Villa",
+    "availability.rangeLabel": "Dates",
+    "availability.nightsLabel": "Nights",
+    "availability.hint": "Pick an available arrival and departure to hold your dates.",
+    "availability.apply": "Request these dates",
     "booking.eyebrow": "Private request",
     "booking.title": "Request dates for a private viewing",
     "booking.copy":
@@ -173,6 +186,7 @@ const translations = {
     "nav.tour": "Тур",
     "nav.service": "Сервис",
     "nav.villas": "Виллы",
+    "nav.availability": "Доступность",
     "nav.booking": "Бронь",
     "header.action": "Запросить даты",
     "menu.label": "Меню",
@@ -241,6 +255,18 @@ const translations = {
     "villa3.title": "Bronze Bay Residence",
     "villa3.copy": "Кинематографичная резиденция с бронзовым стеклом, fire lounge и бассейном, который огибает архитектуру.",
     "villa3.price": "От EUR 22 000 / ночь",
+    "availability.eyebrow": "Доступность онлайн",
+    "availability.title": "Проверьте свободные даты перед заявкой",
+    "availability.copy":
+      "Выберите резиденцию и укажите даты заезда и выезда. Выбранные даты сразу перейдут в приватную заявку ниже.",
+    "availability.free": "Свободно",
+    "availability.booked": "Занято",
+    "availability.stay": "Ваш период",
+    "availability.villaLabel": "Вилла",
+    "availability.rangeLabel": "Даты",
+    "availability.nightsLabel": "Ночи",
+    "availability.hint": "Выберите свободные даты заезда и выезда, чтобы закрепить период.",
+    "availability.apply": "Запросить эти даты",
     "booking.eyebrow": "Private request",
     "booking.title": "Запросите даты для приватного просмотра",
     "booking.copy": "После заявки villa director уточнит состав гостей, ритм поездки и подготовит персональный план резиденции на Кипре.",
@@ -291,6 +317,7 @@ const translations = {
     "nav.tour": "Περιήγηση",
     "nav.service": "Υπηρεσία",
     "nav.villas": "Επαύλεις",
+    "nav.availability": "Διαθεσιμότητα",
     "nav.booking": "Κράτηση",
     "header.action": "Ζητήστε ημερομηνίες",
     "menu.label": "Μενού",
@@ -355,6 +382,18 @@ const translations = {
     "villa3.title": "Bronze Bay Residence",
     "villa3.copy": "Κινηματογραφική έπαυλη ηλιοβασιλέματος με bronze glass, fire lounge και πισίνα που αγκαλιάζει την αρχιτεκτονική.",
     "villa3.price": "Από EUR 22.000 / νύχτα",
+    "availability.eyebrow": "Ζωντανή διαθεσιμότητα",
+    "availability.title": "Δείτε τις ελεύθερες ημερομηνίες πριν το αίτημα",
+    "availability.copy":
+      "Επιλέξτε κατοικία και ορίστε άφιξη και αναχώρηση. Οι ημερομηνίες περνούν κατευθείαν στο ιδιωτικό αίτημα παρακάτω.",
+    "availability.free": "Διαθέσιμο",
+    "availability.booked": "Κρατημένο",
+    "availability.stay": "Η διαμονή σας",
+    "availability.villaLabel": "Έπαυλη",
+    "availability.rangeLabel": "Ημερομηνίες",
+    "availability.nightsLabel": "Διανυκτερεύσεις",
+    "availability.hint": "Επιλέξτε διαθέσιμη άφιξη και αναχώρηση για να κρατήσετε τις ημερομηνίες.",
+    "availability.apply": "Ζητήστε αυτές τις ημερομηνίες",
     "booking.eyebrow": "Ιδιωτικό αίτημα",
     "booking.title": "Ζητήστε ημερομηνίες για ιδιωτική προβολή",
     "booking.copy": "Μετά το αίτημα, ένας villa director θα επιβεβαιώσει το προφίλ των επισκεπτών και θα ετοιμάσει προσωπικό πλάνο διαμονής στην Κύπρο.",
@@ -535,6 +574,7 @@ const applyLanguage = (language) => {
   updateOfficeMapPopup();
   updateBookingEstimate();
   refreshBookingLocale();
+  refreshAvailabilityLocale();
   localStorage.setItem("cyprus-villas-language", activeLanguage);
 };
 
@@ -1348,6 +1388,12 @@ const createDatePicker = (field, { getMinDate, onSelect }) => {
 
   return {
     getDate: () => selected,
+    setDate: (date) => {
+      selected = date ? startOfDay(date) : null;
+      hidden.value = selected ? toDateValue(selected) : "";
+      refreshDisplay();
+      if (!pop.hidden) render();
+    },
     clear: () => {
       selected = null;
       hidden.value = "";
@@ -1371,6 +1417,8 @@ document.addEventListener("keydown", (event) => {
 
 let updateBookingEstimate = () => {};
 let refreshBookingLocale = () => {};
+let applyBookingDates = () => {};
+let refreshAvailabilityLocale = () => {};
 
 if (bookingForm) {
   const arrivalField = bookingForm.querySelector("[data-arrival]").closest("[data-datepicker]");
@@ -1496,6 +1544,18 @@ if (bookingForm) {
     );
   });
 
+  applyBookingDates = (arrival, departure) => {
+    window.clearTimeout(resetTimer);
+    bookingForm.classList.remove("is-sent");
+    if (statusField) statusField.textContent = "";
+    isSubmitting = false;
+    submitButton.disabled = false;
+    arrivalPicker.setDate(arrival);
+    departurePicker.setDate(departure);
+    departurePicker.refresh();
+    updateBookingEstimate();
+  };
+
   bookingForm.addEventListener("submit", (event) => {
     event.preventDefault();
     if (isSubmitting) return;
@@ -1519,6 +1579,212 @@ if (bookingForm) {
   });
 
   setGuests(startGuests);
+}
+
+const availabilityRoot = document.querySelector("[data-availability]");
+
+if (availabilityRoot) {
+  const villaButtons = Array.from(availabilityRoot.querySelectorAll("[data-avail-villa]"));
+  const navButtons = Array.from(availabilityRoot.querySelectorAll("[data-avail-nav]"));
+  const titleEl = availabilityRoot.querySelector("[data-avail-title]");
+  const weekdaysEl = availabilityRoot.querySelector("[data-avail-weekdays]");
+  const gridEl = availabilityRoot.querySelector("[data-avail-grid]");
+  const villaNameEl = availabilityRoot.querySelector("[data-avail-villa-name]");
+  const rangeEl = availabilityRoot.querySelector("[data-avail-range]");
+  const nightsEl = availabilityRoot.querySelector("[data-avail-nights]");
+  const hintEl = availabilityRoot.querySelector("[data-avail-hint]");
+  const applyButton = availabilityRoot.querySelector("[data-avail-apply]");
+  const prevButton = navButtons.find((button) => button.dataset.availNav === "-1");
+
+  const BOOKED_OFFSETS = {
+    1: [[3, 9], [22, 28], [46, 54]],
+    2: [[1, 4], [15, 20], [34, 41], [63, 69]],
+    3: [[8, 13], [27, 33], [50, 58]],
+  };
+  const VILLA_KEYS = { 1: "villa1.title", 2: "villa2.title", 3: "villa3.title" };
+
+  const firstOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1);
+  const currentMonth = () => firstOfMonth(new Date());
+  const addDays = (date, amount) => {
+    const next = new Date(date);
+    next.setDate(next.getDate() + amount);
+    return next;
+  };
+
+  let activeVilla = "1";
+  let viewDate = currentMonth();
+  let rangeStart = null;
+  let rangeEnd = null;
+
+  const buildBooked = () => {
+    const set = new Set();
+    const base = startOfDay(new Date());
+    for (const [from, to] of BOOKED_OFFSETS[activeVilla]) {
+      for (let offset = from; offset <= to; offset += 1) {
+        set.add(toDateValue(addDays(base, offset)));
+      }
+    }
+    return set;
+  };
+
+  let booked = buildBooked();
+
+  const villaName = () => {
+    const dictionary = translations[activeLanguage] || translations.en;
+    return dictionary[VILLA_KEYS[activeVilla]] || translations.en[VILLA_KEYS[activeVilla]];
+  };
+
+  const isFree = (date) =>
+    date >= startOfDay(new Date()) && !booked.has(toDateValue(date));
+
+  const rangeIsClear = (start, end) => {
+    for (let cursor = new Date(start); cursor <= end; cursor = addDays(cursor, 1)) {
+      if (!isFree(cursor)) return false;
+    }
+    return true;
+  };
+
+  const nightCount = () =>
+    rangeStart && rangeEnd
+      ? Math.round((startOfDay(rangeEnd) - startOfDay(rangeStart)) / MS_PER_NIGHT)
+      : 0;
+
+  const formatRange = () => {
+    if (!rangeStart) return "\u2014";
+    const formatter = new Intl.DateTimeFormat(dateLocale(), { day: "2-digit", month: "short" });
+    return rangeEnd
+      ? `${formatter.format(rangeStart)} \u2013 ${formatter.format(rangeEnd)}`
+      : formatter.format(rangeStart);
+  };
+
+  const updateSummary = () => {
+    villaNameEl.textContent = villaName();
+    rangeEl.textContent = formatRange();
+    const count = nightCount();
+    nightsEl.textContent = count > 0 ? String(count) : "\u2014";
+    const ready = Boolean(rangeStart && rangeEnd);
+    applyButton.disabled = !ready;
+    hintEl.hidden = ready;
+  };
+
+  const renderCalendar = () => {
+    const locale = dateLocale();
+    const today = startOfDay(new Date());
+    const year = viewDate.getFullYear();
+    const month = viewDate.getMonth();
+
+    titleEl.textContent = new Intl.DateTimeFormat(locale, {
+      month: "long",
+      year: "numeric",
+    }).format(viewDate);
+
+    weekdaysEl.innerHTML = weekdayLabels(locale)
+      .map((label) => `<span class="availability-calendar__weekday">${label}</span>`)
+      .join("");
+
+    const offset = (new Date(year, month, 1).getDay() + 6) % 7;
+    const days = new Date(year, month + 1, 0).getDate();
+    let cells = "";
+
+    for (let blank = 0; blank < offset; blank += 1) {
+      cells += `<span class="availability-day is-empty"></span>`;
+    }
+    for (let day = 1; day <= days; day += 1) {
+      const current = new Date(year, month, day);
+      const iso = toDateValue(current);
+      const classes = ["availability-day"];
+      const past = current < today;
+      const isBooked = booked.has(iso);
+
+      if (current.getTime() === today.getTime()) classes.push("is-today");
+      if (past) classes.push("is-past");
+      if (isBooked) classes.push("is-booked");
+      if (rangeStart && iso === toDateValue(rangeStart)) classes.push("is-start");
+      if (rangeEnd && iso === toDateValue(rangeEnd)) classes.push("is-end");
+      if (rangeStart && rangeEnd && current >= rangeStart && current <= rangeEnd) {
+        classes.push("is-range");
+      }
+
+      const disabled = past || isBooked ? " disabled" : "";
+      cells += `<button type="button" class="${classes.join(" ")}" data-avail-day="${iso}"${disabled}>${day}</button>`;
+    }
+
+    gridEl.innerHTML = cells;
+    if (prevButton) prevButton.disabled = viewDate <= currentMonth();
+  };
+
+  const render = () => {
+    renderCalendar();
+    updateSummary();
+  };
+
+  const selectDay = (iso) => {
+    const date = startOfDay(parseISODate(iso));
+    if (!isFree(date)) return;
+
+    if (!rangeStart || rangeEnd || date <= rangeStart) {
+      rangeStart = date;
+      rangeEnd = null;
+    } else if (rangeIsClear(rangeStart, date)) {
+      rangeEnd = date;
+    } else {
+      rangeStart = date;
+      rangeEnd = null;
+    }
+    render();
+  };
+
+  const setVilla = (villa) => {
+    activeVilla = villa;
+    booked = buildBooked();
+    rangeStart = null;
+    rangeEnd = null;
+    villaButtons.forEach((button) => {
+      const active = button.dataset.availVilla === villa;
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-selected", active ? "true" : "false");
+    });
+    render();
+  };
+
+  villaButtons.forEach((button) => {
+    button.addEventListener("click", () => setVilla(button.dataset.availVilla));
+  });
+
+  navButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const next = new Date(
+        viewDate.getFullYear(),
+        viewDate.getMonth() + Number(button.dataset.availNav),
+        1,
+      );
+      viewDate = next < currentMonth() ? currentMonth() : next;
+      renderCalendar();
+    });
+  });
+
+  gridEl.addEventListener("click", (event) => {
+    const cell = event.target.closest("[data-avail-day]");
+    if (!cell || cell.disabled) return;
+    selectDay(cell.dataset.availDay);
+  });
+
+  applyButton.addEventListener("click", () => {
+    if (!rangeStart || !rangeEnd) return;
+    applyBookingDates(rangeStart, rangeEnd);
+    const target = document.getElementById("booking");
+    if (!target) return;
+    const headerOffset = header ? Math.ceil(header.getBoundingClientRect().height) + 18 : 0;
+    const top = Math.max(0, target.getBoundingClientRect().top + window.scrollY - headerOffset);
+    window.scrollTo({ top, behavior: reduceMotionQuery.matches ? "auto" : "smooth" });
+  });
+
+  refreshAvailabilityLocale = () => {
+    viewDate = firstOfMonth(viewDate);
+    render();
+  };
+
+  render();
 }
 
 const markVideoReady = () => {

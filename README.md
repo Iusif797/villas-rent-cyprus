@@ -4,9 +4,11 @@
 
 ## Структура
 
-- `index.html` — разметка scroll-film маршрута, коллекции вилл, офиса и footer.
-- `src/styles.css` — визуальная система, адаптив, языковой header, коллекция и performance-friendly состояния.
-- `src/main.js` — desktop video-scrub, mobile/tablet sprite-scrub, языки EN/RU/EL, сцены, форма и ленивая OpenStreetMap-карта офиса.
+- `index.html` — разметка scroll-film маршрута, коллекции вилл, календаря доступности, офиса и footer.
+- `src/styles.css` — визуальная система, адаптив, языковой header, коллекция, календарь доступности и performance-friendly состояния.
+- `src/main.js` — desktop video-scrub, mobile/tablet sprite-scrub, языки EN/RU/EL, сцены, форма, календарь доступности вилл и ленивая OpenStreetMap-карта офиса.
+
+Календарь доступности (`#availability`) переключает виллы, показывает занятые/свободные даты помесячно и передаёт выбранный период (заезд/выезд) напрямую в форму брони с мгновенным пересчётом сметы. Данные о занятости хранятся как офсеты от текущей даты в `src/main.js`, поэтому календарь всегда выглядит актуальным без бэкенда.
 - `assets/video` — локальные оптимизированные версии исходного видео для desktop scroll-scrub.
 - `assets/video/frames` — WebP-спрайты для плавного mobile/tablet scroll-scrub без MP4 seek: `villa-tour-mobile-portrait-*` (404×720, портретная ориентация) и `villa-tour-mobile-strip-*` (960×540, альбомная); набор выбирается по ориентации экрана.
 - `assets/gallery` и `assets/posters` — кадры, извлеченные из локального видео.

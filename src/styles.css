@@ -744,6 +744,7 @@ button {
 
 .scene.is-visible .scene__inner,
 .gallery-section.is-visible .collection-shell,
+.availability-section.is-visible .availability-shell,
 .booking-section.is-visible .booking-layout,
 .office-section.is-visible .office-layout {
   opacity: 1;
@@ -937,6 +938,7 @@ h3 {
 }
 
 .collection-shell,
+.availability-shell,
 .booking-layout,
 .office-layout {
   opacity: 0;
@@ -1061,6 +1063,305 @@ h3 {
   color: var(--gold);
   font-size: 0.78rem;
   text-transform: uppercase;
+}
+
+.availability-section {
+  min-height: auto;
+  align-items: start;
+  padding-top: 82px;
+  padding-bottom: 132px;
+  background:
+    linear-gradient(180deg, rgba(5, 5, 5, 0.82), rgba(5, 5, 5, 0.92)),
+    linear-gradient(90deg, rgba(107, 182, 180, 0.06), rgba(201, 163, 91, 0.06)),
+    var(--black);
+}
+
+.availability-shell {
+  width: min(100%, 1180px);
+  margin: 0 auto;
+}
+
+.availability-panel {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.82fr) minmax(320px, 1.4fr) minmax(260px, 0.9fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.availability-villas {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.availability-villa {
+  display: grid;
+  gap: 5px;
+  padding: 16px 18px;
+  text-align: left;
+  color: rgba(247, 240, 228, 0.7);
+  border: 1px solid rgba(247, 240, 228, 0.14);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  transition:
+    color 200ms var(--ease-out),
+    border-color 200ms var(--ease-out),
+    background 200ms var(--ease-out);
+}
+
+.availability-villa:hover {
+  border-color: rgba(201, 163, 91, 0.4);
+  background: rgba(201, 163, 91, 0.08);
+}
+
+.availability-villa.is-active {
+  color: var(--ivory);
+  border-color: rgba(201, 163, 91, 0.6);
+  background: linear-gradient(180deg, rgba(201, 163, 91, 0.14), rgba(255, 255, 255, 0.02));
+}
+
+.availability-villa__name {
+  font-family: ui-serif, Georgia, "Times New Roman", serif;
+  font-size: 1.02rem;
+}
+
+.availability-villa__meta {
+  color: var(--gold);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.availability-calendar {
+  padding: 22px;
+  border: 1px solid rgba(247, 240, 228, 0.14);
+  border-radius: 12px;
+  background: rgba(12, 11, 10, 0.72);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.26);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+
+.availability-calendar__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.availability-calendar__title {
+  color: var(--ivory);
+  font-size: 1.05rem;
+  text-transform: capitalize;
+}
+
+.availability-calendar__nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  color: var(--ivory);
+  border: 1px solid rgba(247, 240, 228, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 1.15rem;
+  line-height: 1;
+  transition:
+    color 160ms var(--ease-out),
+    border-color 160ms var(--ease-out),
+    background 160ms var(--ease-out);
+}
+
+.availability-calendar__nav:hover {
+  color: var(--gold);
+  border-color: rgba(201, 163, 91, 0.5);
+  background: rgba(201, 163, 91, 0.1);
+}
+
+.availability-calendar__nav:disabled {
+  opacity: 0.32;
+  pointer-events: none;
+}
+
+.availability-calendar__weekdays,
+.availability-calendar__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.availability-calendar__weekdays {
+  margin-bottom: 8px;
+}
+
+.availability-calendar__weekday {
+  padding: 4px 0;
+  color: rgba(247, 240, 228, 0.4);
+  font-size: 0.7rem;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.availability-day {
+  aspect-ratio: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(247, 240, 228, 0.88);
+  border: 1px solid rgba(247, 240, 228, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+  transition:
+    color 140ms var(--ease-out),
+    border-color 140ms var(--ease-out),
+    background 140ms var(--ease-out);
+}
+
+.availability-day:hover:not(:disabled) {
+  border-color: rgba(201, 163, 91, 0.5);
+  background: rgba(201, 163, 91, 0.14);
+}
+
+.availability-day.is-empty {
+  border-color: transparent;
+  background: transparent;
+  pointer-events: none;
+}
+
+.availability-day.is-today {
+  color: var(--gold);
+  border-color: rgba(201, 163, 91, 0.4);
+}
+
+.availability-day.is-past {
+  color: rgba(247, 240, 228, 0.2);
+  border-color: transparent;
+  background: transparent;
+  pointer-events: none;
+}
+
+.availability-day.is-booked {
+  color: rgba(247, 240, 228, 0.28);
+  border-color: rgba(247, 240, 228, 0.08);
+  background: repeating-linear-gradient(
+    135deg,
+    rgba(247, 240, 228, 0.05) 0,
+    rgba(247, 240, 228, 0.05) 2px,
+    transparent 2px,
+    transparent 6px
+  );
+  text-decoration: line-through;
+  pointer-events: none;
+}
+
+.availability-day.is-range {
+  color: var(--black);
+  border-color: rgba(201, 163, 91, 0.4);
+  background: rgba(201, 163, 91, 0.34);
+}
+
+.availability-day.is-start,
+.availability-day.is-end {
+  color: var(--black);
+  border-color: var(--gold);
+  background: var(--gold);
+  font-weight: 500;
+}
+
+.availability-side {
+  display: grid;
+  gap: 18px;
+  align-content: start;
+  padding: 22px;
+  border: 1px solid rgba(201, 163, 91, 0.2);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(201, 163, 91, 0.06), rgba(255, 255, 255, 0.012));
+}
+
+.availability-legend {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.availability-legend li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(247, 240, 228, 0.7);
+  font-size: 0.82rem;
+}
+
+.availability-legend__dot {
+  width: 14px;
+  height: 14px;
+  border: 1px solid rgba(247, 240, 228, 0.16);
+  border-radius: 5px;
+}
+
+.availability-legend__dot--free {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.availability-legend__dot--booked {
+  background: repeating-linear-gradient(
+    135deg,
+    rgba(247, 240, 228, 0.28) 0,
+    rgba(247, 240, 228, 0.28) 2px,
+    transparent 2px,
+    transparent 5px
+  );
+}
+
+.availability-legend__dot--range {
+  border-color: var(--gold);
+  background: var(--gold);
+}
+
+.availability-summary {
+  display: grid;
+  gap: 10px;
+}
+
+.availability-summary__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  color: rgba(247, 240, 228, 0.62);
+  font-size: 0.85rem;
+}
+
+.availability-summary__value {
+  color: var(--ivory);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.availability-hint {
+  margin: 0;
+  color: rgba(247, 240, 228, 0.5);
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+.availability-hint[hidden] {
+  display: none;
+}
+
+.availability-apply {
+  width: 100%;
+}
+
+.availability-apply:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .booking-section {
@@ -1959,6 +2260,7 @@ body.is-mobile-scrub {
 
 .is-mobile-scrub .scene--benefits,
 .is-mobile-scrub .gallery-section,
+.is-mobile-scrub .availability-section,
 .is-mobile-scrub .booking-section,
 .is-mobile-scrub .office-section {
   background: unset;
@@ -1971,6 +2273,7 @@ body.is-mobile-scrub {
 
 .is-mobile-scrub .scene__inner,
 .is-mobile-scrub .collection-shell,
+.is-mobile-scrub .availability-shell,
 .is-mobile-scrub .booking-layout,
 .is-mobile-scrub .office-layout {
   opacity: 1;
@@ -2064,6 +2367,14 @@ body.is-mobile-scrub {
   .villa-card--wide {
     grid-column: auto;
     min-height: 560px;
+  }
+
+  .availability-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .availability-villas {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .office-layout {
@@ -2174,6 +2485,29 @@ body.is-mobile-scrub {
   .gallery-section {
     min-height: auto;
     padding: 94px 18px;
+  }
+
+  .availability-section {
+    padding: 94px 18px;
+  }
+
+  .availability-villas {
+    grid-template-columns: 1fr;
+  }
+
+  .availability-calendar,
+  .availability-side {
+    padding: 18px;
+  }
+
+  .availability-calendar__weekdays,
+  .availability-calendar__grid {
+    gap: 4px;
+  }
+
+  .availability-day {
+    border-radius: 8px;
+    font-size: 0.84rem;
   }
 
   .section-heading {
